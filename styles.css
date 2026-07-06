@@ -443,14 +443,8 @@ h3 { font-size: 1.2rem; }
 .kr-shape {
   fill: #e4e4e4;
   stroke: #bdbdbd;
-  stroke-width: 1.5;
+  stroke-width: 1;
   stroke-linejoin: round;
-}
-
-.kr-jeju {
-  fill: #e4e4e4;
-  stroke: #bdbdbd;
-  stroke-width: 1.5;
 }
 
 .leader-line {
@@ -463,7 +457,7 @@ h3 { font-size: 1.2rem; }
   fill: var(--color-black);
   opacity: 0.25;
   animation: seoul-pulse 2.4s ease-out infinite;
-  transform-origin: 110px 48px;
+  transform-origin: 76.1px 111.3px;
 }
 
 .seoul-dot .dot { fill: var(--color-black); }
@@ -587,20 +581,6 @@ h3 { font-size: 1.2rem; }
   align-self: flex-start;
 }
 
-.project-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-}
-
-.project-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 32px;
-}
-
-.project-card p { color: var(--color-text-muted); margin: 0; }
-
 /* Contact */
 .contact { padding: 100px 0; background: var(--color-bg-alt); }
 
@@ -700,7 +680,6 @@ h3 { font-size: 1.2rem; }
   .nav.open a { padding: 10px 0; }
   .org-grid { grid-template-columns: 1fr 1fr; }
   .achievement-stats { grid-template-columns: 1fr 1fr; }
-  .project-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
   .media-map-body { flex-direction: column; }
   .media-detail { width: 100%; }
