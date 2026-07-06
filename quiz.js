@@ -11,94 +11,243 @@ nav.querySelectorAll('a').forEach((link) => {
   link.addEventListener('click', () => nav.classList.remove('open'));
 });
 
-const BEST_SCORE_KEY = 'hunters_quiz_best_v1';
+const BEST_SCORE_PREFIX = 'hunters_quiz_best_';
 
-const QUESTIONS = [
-  {
-    q: 'PER(주가수익비율)은 어떻게 계산하나요?',
-    options: ['주가 ÷ 주당순이익', '주가 ÷ 매출액', '시가총액 ÷ 자본금', '부채 ÷ 자기자본'],
-    answer: 0,
-    explain: 'PER은 주가를 주당순이익(EPS)으로 나눈 값으로, 순이익 대비 주가 수준을 나타냅니다.',
-  },
-  {
-    q: '분산투자의 주된 목적은 무엇인가요?',
-    options: ['거래 비용 절감', '리스크 분산', '세금 절감', '배당금 극대화'],
-    answer: 1,
-    explain: '여러 자산에 나누어 투자하면 특정 자산의 손실이 전체 포트폴리오에 미치는 영향을 줄일 수 있습니다.',
-  },
-  {
-    q: '코스피(KOSPI)는 무엇을 의미하나요?',
-    options: ['한국거래소 파생상품 지수', '한국종합주가지수', '중소기업 전용 시장 지수', '채권 시장 지수'],
-    answer: 1,
-    explain: '코스피는 한국거래소 유가증권시장에 상장된 종목들의 시가총액을 기준으로 산출하는 종합주가지수입니다.',
-  },
-  {
-    q: '배당수익률이란 무엇인가요?',
-    options: ['주가 대비 연간 배당금 비율', '순이익 대비 배당금 비율', '자본금 대비 배당금 비율', '거래량 대비 배당금 비율'],
-    answer: 0,
-    explain: '배당수익률은 연간 배당금을 현재 주가로 나눈 값으로, 투자금 대비 배당 수익을 가늠하는 지표입니다.',
-  },
-  {
-    q: '시가총액은 어떻게 계산하나요?',
-    options: ['주가 × 발행주식수', '자본금 + 부채', '매출액 × 영업이익률', '주가 ÷ 발행주식수'],
-    answer: 0,
-    explain: '시가총액은 현재 주가에 발행주식수를 곱해 계산하며, 기업의 시장 가치를 나타냅니다.',
-  },
-  {
-    q: "'블루칩' 주식이 의미하는 것은?",
-    options: ['최근 상장한 신규 종목', '재무구조가 우량한 대형 안정주', '단기 급등이 예상되는 테마주', '거래가 거의 없는 소형주'],
-    answer: 1,
-    explain: '블루칩은 재무구조가 튼튼하고 오랜 기간 안정적인 실적을 보여온 대형 우량주를 가리키는 표현입니다.',
-  },
-  {
-    q: 'ETF는 무엇의 약자인가요?',
-    options: ['Equity Trading Fund', 'Exchange Traded Fund', 'Extra Term Finance', 'Enterprise Trust Fund'],
-    answer: 1,
-    explain: 'ETF(Exchange Traded Fund, 상장지수펀드)는 특정 지수를 추종하며 주식처럼 거래소에서 매매할 수 있는 펀드입니다.',
-  },
-  {
-    q: '손절매(스탑로스)를 하는 주된 이유는?',
-    options: ['세금을 줄이기 위해', '추가 손실을 막기 위해', '배당금을 더 받기 위해', '거래량을 늘리기 위해'],
-    answer: 1,
-    explain: '손절매는 정해둔 손실 구간에 도달하면 매도해 추가적인 손실 확대를 막기 위한 전략입니다.',
-  },
-  {
-    q: "PBR(주가순자산비율)이 1보다 낮다는 것은 어떤 의미인가요?",
-    options: ['주가가 순자산가치보다 낮게 거래됨', '회사가 부도 직전임', '배당을 전혀 하지 않음', '거래가 정지됨'],
-    answer: 0,
-    explain: 'PBR이 1보다 낮으면 주가가 장부상 순자산가치보다 낮게 거래되고 있다는 뜻으로, 저평가 신호로 해석되기도 합니다.',
-  },
-  {
-    q: '코스닥(KOSDAQ) 시장에는 주로 어떤 기업이 상장되어 있나요?',
-    options: ['대형 금융지주회사 위주', '중소·벤처·기술 기업 위주', '공기업 위주', '해외 기업 위주'],
-    answer: 1,
-    explain: '코스닥은 코스피에 비해 중소기업, 벤처기업, 기술 성장 기업이 다수 상장되어 있는 시장입니다.',
-  },
-];
+// --- Chart builders (simple illustrative SVGs, not real market data) ---
 
+const trendChart = (direction, limitLabel) => {
+  const bars = direction === 'up'
+    ? [40, 55, 50, 68, 78, 92, 105, 130]
+    : [130, 118, 122, 100, 90, 75, 60, 38];
+  const barW = 32;
+  const gap = 12;
+  const baseY = 160;
+  const lastIndex = bars.length - 1;
+  const lastX = 16 + lastIndex * (barW + gap);
+  const lastTopY = baseY - bars[lastIndex];
+  const bars_svg = bars.map((h, i) => {
+    const x = 16 + i * (barW + gap);
+    const isLast = i === lastIndex;
+    const fill = isLast ? (direction === 'up' ? 'var(--color-up)' : 'var(--color-down)') : '#c9c9c9';
+    return `<rect x="${x}" y="${baseY - h}" width="${barW}" height="${h}" fill="${fill}" rx="2" />`;
+  }).join('');
+  return `
+    <svg viewBox="0 0 400 180" class="quiz-chart" role="img" aria-label="${direction === 'up' ? '상한가' : '하한가'} 도달 차트">
+      ${bars_svg}
+      <line x1="8" y1="${baseY}" x2="392" y2="${baseY}" stroke="#d0d0d0" stroke-width="1" />
+      <text x="${lastX + barW / 2}" y="${lastTopY - 10}" text-anchor="middle" class="chart-label chart-callout">${limitLabel}</text>
+    </svg>
+  `;
+};
+
+const winRateChart = (pct) => {
+  const width = 360;
+  const winW = (width * pct) / 100;
+  return `
+    <svg viewBox="0 0 380 90" class="quiz-chart" role="img" aria-label="예상 승률 ${pct}%">
+      <rect x="10" y="30" width="${width}" height="32" fill="#e2e2e2" rx="3" />
+      <rect x="10" y="30" width="${winW}" height="32" fill="var(--color-black)" rx="3" />
+      <text x="${10 + winW / 2}" y="51" text-anchor="middle" class="chart-bar-label">${pct}%</text>
+      <text x="10" y="20" class="chart-label">예상 승률</text>
+    </svg>
+  `;
+};
+
+const ratioChart = (favorable) => {
+  const entryY = 90;
+  const stopY = favorable ? 108 : 155;
+  const targetY = favorable ? 25 : 65;
+  const stopLabel = favorable ? '손절 -2%' : '손절 -20%';
+  const targetLabel = favorable ? '목표 +20%' : '목표 +2%';
+  return `
+    <svg viewBox="0 0 380 180" class="quiz-chart" role="img" aria-label="손익비 ${favorable ? '유리' : '불리'}한 구조">
+      <line x1="20" y1="${targetY}" x2="360" y2="${targetY}" stroke="var(--color-correct)" stroke-width="1.5" stroke-dasharray="5 5" />
+      <text x="20" y="${targetY - 8}" class="chart-label" fill="var(--color-correct)">${targetLabel}</text>
+      <line x1="20" y1="${entryY}" x2="360" y2="${entryY}" stroke="var(--color-black)" stroke-width="2" />
+      <text x="20" y="${entryY - 8}" class="chart-label">진입가</text>
+      <line x1="20" y1="${stopY}" x2="360" y2="${stopY}" stroke="var(--color-up)" stroke-width="1.5" stroke-dasharray="5 5" />
+      <text x="20" y="${stopY + 16}" class="chart-label" fill="var(--color-up)">${stopLabel}</text>
+    </svg>
+  `;
+};
+
+// --- Quiz content, grouped by topic and level ---
+
+const QUIZ_SETS = {
+  sangtta_basic: {
+    title: '상따하따 · 기본',
+    questions: [
+      {
+        q: '한국 주식시장의 하루 가격제한폭은 얼마인가요?',
+        options: ['±10%', '±20%', '±30%', '±50%'],
+        answer: 2,
+        explain: '코스피·코스닥 모두 하루 가격 변동 폭이 상하 30%로 제한되어 있고, 제한폭에 도달하면 더 이상 오르거나 내리지 못한 채 거래가 종료됩니다.',
+      },
+      {
+        q: "'상따'란 무엇을 의미하나요?",
+        options: ['상한가에 도달한 종목을 따라 매수하는 전략', '하한가에 도달한 종목을 따라 매수하는 전략', '배당수익률이 높은 종목에 투자하는 전략', '신규 상장 종목에 투자하는 전략'],
+        answer: 0,
+        explain: "상따는 '상한가 따라잡기'의 줄임말로, 상한가에 진입한 종목의 상승 추세가 이어질 것을 기대하고 매수하는 기법입니다.",
+      },
+    ],
+  },
+  sangtta_advanced: {
+    title: '상따하따 · 심화',
+    questions: [
+      {
+        q: '아래 차트처럼 한 종목이 급등하며 상한가에 도달했습니다. 상따 전략 관점에서 이 상황에 해당하는 대응은?',
+        chart: trendChart('up', '상한가 (+30%)'),
+        options: ['상한가 진입을 확인하고 추세 지속을 기대하며 매수한다', '상한가에 도달했으니 즉시 전량 매도한다', '거래량과 상관없이 무조건 공매도한다', '아무 대응도 하지 않고 관망만 한다'],
+        answer: 0,
+        explain: '상따는 상한가 진입 이후에도 상승 추세가 이어질 가능성에 베팅하는 전략으로, 상한가 진입을 확인한 뒤 매수에 나서는 것이 핵심입니다.',
+      },
+      {
+        q: '이번엔 차트처럼 한 종목이 급락하며 하한가까지 도달했습니다. 하따 전략은 이 상황에서 어떤 판단을 내리나요?',
+        chart: trendChart('down', '하한가 (-30%)'),
+        options: ['과도하게 눌린 만큼 반등을 기대하고 매수를 고려한다', '하한가이므로 더 떨어질 것을 기대하고 공매도한다', '무조건 손절매를 실행한다', '거래를 중단하고 다른 종목을 찾는다'],
+        answer: 0,
+        explain: '하따는 하한가까지 과하게 눌린 종목이 이후 반등할 가능성에 베팅해 매수를 고려하는 전략입니다.',
+      },
+    ],
+  },
+  kelly_basic: {
+    title: '켈리공식 · 기본',
+    questions: [
+      {
+        q: '켈리공식의 기본 원리는 무엇인가요?',
+        options: ['승률이 낮을수록 더 큰 금액을 베팅한다', '승률이 클수록 더 큰 금액을 베팅한다', '손익비와 상관없이 항상 동일한 금액을 베팅한다', '시장 상황과 무관하게 최대 금액을 베팅한다'],
+        answer: 1,
+        explain: '켈리공식은 "승률이 클수록 더 큰 금액을 투자하라"는 공식으로, 승률에 비례해 베팅 비중을 조절합니다.',
+      },
+      {
+        q: '켈리공식에 따르면 승률이 50% 이하일 때 어떻게 해야 하나요?',
+        options: ['투자하지 않는다', '최대 금액을 투자한다', '자산의 절반을 투자한다', '손익비를 무시하고 투자한다'],
+        answer: 0,
+        explain: '승률이 50% 이하라면 켈리공식 관점에서 투자를 하지 않는 것이 원칙이며, 승률이 100%에 가까워질수록 베팅 금액을 키웁니다.',
+      },
+    ],
+  },
+  kelly_advanced: {
+    title: '켈리공식 · 심화',
+    questions: [
+      {
+        q: '한 트레이더의 백테스트 결과 특정 전략의 예상 승률이 아래 차트처럼 나타났습니다. 켈리공식 관점에서 올바른 대응은?',
+        chart: winRateChart(80),
+        options: ['승률이 높으므로 베팅 비중을 늘린다', '승률과 무관하게 항상 소액만 베팅한다', '승률이 100%가 아니므로 투자하지 않는다', '반대 방향으로 베팅한다'],
+        answer: 0,
+        explain: '승률이 100%에 가까울수록 켈리공식은 더 큰 비중의 베팅을 제안합니다. 80%는 높은 승률이므로 비중을 늘리는 것이 원칙에 부합합니다.',
+      },
+      {
+        q: '반대로 예상 승률이 아래 차트처럼 나타난 전략이 있습니다. 켈리공식에 따르면 어떻게 해야 하나요?',
+        chart: winRateChart(40),
+        options: ['승률이 50% 미만이므로 투자를 피한다', '승률이 낮을수록 베팅을 늘려 만회한다', '무조건 전액 투자한다', '손익비만 좋으면 승률은 무시해도 된다'],
+        answer: 0,
+        explain: '승률이 50%를 넘지 못하면 켈리공식 관점에서 투자를 하지 않는 것이 원칙입니다.',
+      },
+    ],
+  },
+  ratio_basic: {
+    title: '손익비 · 기본',
+    questions: [
+      {
+        q: '손익비란 무엇을 의미하나요?',
+        options: ['익절 시 수익과 손절 시 손실의 비율', '매수와 매도 거래 횟수의 비율', '배당금과 주가의 비율', '거래량과 시가총액의 비율'],
+        answer: 0,
+        explain: '손익비는 익절했을 때의 수익과 손절했을 때의 손실 크기를 비교한 비율입니다.',
+      },
+      {
+        q: '손익비가 10:1인 전략에서 맞췄을 때 100만원을 벌었다면, 틀렸을 때의 손실은 얼마인가요?',
+        options: ['10만원', '100만원', '1,000만원', '1만원'],
+        answer: 0,
+        explain: '손익비 10:1은 수익과 손실의 비율이 10대 1이라는 의미이므로, 100만원 수익 대비 손실은 10만원입니다.',
+      },
+    ],
+  },
+  ratio_advanced: {
+    title: '손익비 · 심화',
+    questions: [
+      {
+        q: '아래 차트처럼 진입가 대비 손절 라인은 가깝고, 목표가는 훨씬 멀리 설정되어 있습니다. 이 구조가 의미하는 것은?',
+        chart: ratioChart(true),
+        options: ['손익비가 유리해 승률이 낮아도 반복하면 유리할 수 있다', '손익비가 불리해 이 거래는 피해야 한다', '손절 라인이 가까우므로 무조건 손해다', '목표가가 멀어서 실현 가능성이 없다'],
+        answer: 0,
+        explain: '손절은 가깝게, 목표가는 멀게 설정하면 손익비가 유리해져 승률이 낮아도 반복할수록 잔고가 우상향할 수 있습니다.',
+      },
+      {
+        q: '이번엔 반대로 손절 라인은 멀고 목표가는 가까운 구조입니다. 이런 거래를 반복하면 어떻게 될 가능성이 높나요?',
+        chart: ratioChart(false),
+        options: ['손익비가 불리해 승률이 높아도 장기적으로 손실이 쌓일 수 있다', '손익비가 유리해 무조건 수익이 난다', '목표가가 가까우므로 무조건 안전하다', '승률과 손익비는 무관하다'],
+        answer: 0,
+        explain: '손절은 멀고 목표가는 가까우면 손익비가 불리해져, 승률이 다소 높더라도 반복하면 장기적으로 손실이 누적될 수 있습니다.',
+      },
+    ],
+  },
+};
+
+const quizCard = document.getElementById('quizCard');
+
+const getBestScore = (setKey) => Number(localStorage.getItem(BEST_SCORE_PREFIX + setKey) || 0);
+const setBestScore = (setKey, value) => {
+  if (value > getBestScore(setKey)) localStorage.setItem(BEST_SCORE_PREFIX + setKey, String(value));
+};
+
+let activeSetKey = null;
 let current = 0;
 let score = 0;
 let answered = false;
 
-const quizCard = document.getElementById('quizCard');
+const renderMenu = () => {
+  const groups = [
+    { label: '상따하따', basic: 'sangtta_basic', advanced: 'sangtta_advanced' },
+    { label: '켈리공식', basic: 'kelly_basic', advanced: 'kelly_advanced' },
+    { label: '손익비', basic: 'ratio_basic', advanced: 'ratio_advanced' },
+  ];
 
-const getBestScore = () => Number(localStorage.getItem(BEST_SCORE_KEY) || 0);
-const setBestScore = (value) => {
-  if (value > getBestScore()) localStorage.setItem(BEST_SCORE_KEY, String(value));
+  quizCard.innerHTML = `
+    <div class="quiz-menu">
+      ${groups.map((g) => `
+        <div class="quiz-menu-group">
+          <h3>${g.label}</h3>
+          <div class="quiz-menu-buttons">
+            <button class="btn btn-outline" data-set="${g.basic}">기본 (${getBestScore(g.basic)}/${QUIZ_SETS[g.basic].questions.length})</button>
+            <button class="btn btn-outline" data-set="${g.advanced}">심화 (${getBestScore(g.advanced)}/${QUIZ_SETS[g.advanced].questions.length})</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  quizCard.querySelectorAll('button[data-set]').forEach((btn) => {
+    btn.addEventListener('click', () => startSet(btn.dataset.set));
+  });
+};
+
+const startSet = (setKey) => {
+  activeSetKey = setKey;
+  current = 0;
+  score = 0;
+  renderQuestion();
 };
 
 const renderQuestion = () => {
   answered = false;
-  const item = QUESTIONS[current];
+  const set = QUIZ_SETS[activeSetKey];
+  const item = set.questions[current];
   quizCard.innerHTML = `
-    <p class="quiz-progress">${current + 1} / ${QUESTIONS.length}</p>
+    <p class="quiz-progress">${set.title} · ${current + 1} / ${set.questions.length}</p>
     <h3 class="quiz-question">${item.q}</h3>
+    ${item.chart ? `<div class="quiz-chart-wrap">${item.chart}</div>` : ''}
     <div class="quiz-options" id="quizOptions">
       ${item.options.map((opt, i) => `<button class="quiz-option" data-index="${i}">${opt}</button>`).join('')}
     </div>
     <p class="quiz-explain" id="quizExplain" hidden></p>
-    <button class="btn btn-primary" id="nextBtn" hidden>다음 문제 →</button>
+    <div class="quiz-actions">
+      <button class="btn btn-outline" id="menuBtn">메뉴로</button>
+      <button class="btn btn-primary" id="nextBtn" hidden>다음 →</button>
+    </div>
   `;
+
+  document.getElementById('menuBtn').addEventListener('click', renderMenu);
 
   const optionButtons = quizCard.querySelectorAll('.quiz-option');
   optionButtons.forEach((btn) => {
@@ -122,10 +271,10 @@ const renderQuestion = () => {
 
       const nextBtn = document.getElementById('nextBtn');
       nextBtn.hidden = false;
-      nextBtn.textContent = current === QUESTIONS.length - 1 ? '결과 보기 →' : '다음 문제 →';
+      nextBtn.textContent = current === set.questions.length - 1 ? '결과 보기 →' : '다음 →';
       nextBtn.addEventListener('click', () => {
         current += 1;
-        if (current < QUESTIONS.length) {
+        if (current < set.questions.length) {
           renderQuestion();
         } else {
           renderResult();
@@ -136,27 +285,28 @@ const renderQuestion = () => {
 };
 
 const renderResult = () => {
-  setBestScore(score);
-  const pct = Math.round((score / QUESTIONS.length) * 100);
+  const set = QUIZ_SETS[activeSetKey];
+  setBestScore(activeSetKey, score);
+  const total = set.questions.length;
+  const pct = Math.round((score / total) * 100);
   let tier = '다시 도전해보세요';
-  if (pct >= 90) tier = '투자 고수';
-  else if (pct >= 70) tier = '우수한 실력';
-  else if (pct >= 50) tier = '보통 수준';
+  if (pct === 100) tier = '완벽해요';
+  else if (pct >= 50) tier = '좋아요';
 
   quizCard.innerHTML = `
     <div class="quiz-result">
-      <p class="quiz-progress">퀴즈 완료</p>
-      <h3 class="quiz-question">${QUESTIONS.length}문제 중 ${score}문제 정답 (${pct}%)</h3>
+      <p class="quiz-progress">${set.title} · 완료</p>
+      <h3 class="quiz-question">${total}문제 중 ${score}문제 정답 (${pct}%)</h3>
       <p class="quiz-tier">${tier}</p>
-      <p class="quiz-best">최고 기록: ${getBestScore()} / ${QUESTIONS.length}</p>
-      <button class="btn btn-primary" id="retryBtn">다시 풀기</button>
+      <p class="quiz-best">최고 기록: ${getBestScore(activeSetKey)} / ${total}</p>
+      <div class="quiz-actions quiz-actions-center">
+        <button class="btn btn-outline" id="menuBtn2">메뉴로</button>
+        <button class="btn btn-primary" id="retryBtn">다시 풀기</button>
+      </div>
     </div>
   `;
-  document.getElementById('retryBtn').addEventListener('click', () => {
-    current = 0;
-    score = 0;
-    renderQuestion();
-  });
+  document.getElementById('menuBtn2').addEventListener('click', renderMenu);
+  document.getElementById('retryBtn').addEventListener('click', () => startSet(activeSetKey));
 };
 
-renderQuestion();
+renderMenu();
