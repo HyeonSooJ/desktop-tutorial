@@ -68,3 +68,24 @@ mediaPins.forEach((pin) => {
     }
   });
 });
+
+const seoulDot = document.getElementById('seoulDot');
+const seoulZoom = document.getElementById('seoulZoom');
+
+const toggleSeoulZoom = () => {
+  const isOpen = seoulZoom.classList.toggle('open');
+  seoulDot.classList.toggle('active', isOpen);
+  seoulDot.setAttribute('aria-expanded', String(isOpen));
+  if (!isOpen) {
+    mediaPins.forEach((pin) => pin.classList.remove('active'));
+    mediaDetail.innerHTML = '<p class="media-detail-placeholder">지도에서 위치를 선택하면 자세한 내용을 확인할 수 있습니다.</p>';
+  }
+};
+
+seoulDot.addEventListener('click', toggleSeoulZoom);
+seoulDot.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    toggleSeoulZoom();
+  }
+});

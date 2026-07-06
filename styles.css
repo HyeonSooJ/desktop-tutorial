@@ -453,6 +453,8 @@ h3 { font-size: 1.2rem; }
   stroke-dasharray: 4 4;
 }
 
+.seoul-dot { cursor: pointer; }
+
 .seoul-dot .pulse {
   fill: var(--color-black);
   opacity: 0.25;
@@ -460,12 +462,21 @@ h3 { font-size: 1.2rem; }
   transform-origin: 76.1px 111.3px;
 }
 
-.seoul-dot .dot { fill: var(--color-black); }
-
-.seoul-dot text {
-  font-size: 13px;
-  font-weight: 700;
+.seoul-dot .dot {
   fill: var(--color-black);
+  transition: fill 0.15s ease, r 0.15s ease;
+}
+
+.seoul-dot:hover .dot,
+.seoul-dot:focus-visible .dot,
+.seoul-dot.active .dot {
+  fill: var(--color-up);
+  r: 5;
+}
+
+.seoul-dot:focus-visible {
+  outline: 2px dashed var(--color-up);
+  outline-offset: 3px;
 }
 
 @keyframes seoul-pulse {
@@ -473,30 +484,24 @@ h3 { font-size: 1.2rem; }
   100% { transform: scale(2.4); opacity: 0; }
 }
 
+.seoul-zoom {
+  transform-origin: 76.1px 111.3px;
+  transform: scale(0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+}
+
+.seoul-zoom.open {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .inset-bubble {
   fill: #fff;
   stroke: var(--color-black);
   stroke-width: 1.5;
-}
-
-.inset-label {
-  font-size: 13px;
-  font-weight: 700;
-  fill: var(--color-text-muted);
-  letter-spacing: 0.04em;
-}
-
-.han-river {
-  fill: none;
-  stroke: #bcd4ee;
-  stroke-width: 12;
-  stroke-linecap: round;
-}
-
-.river-label {
-  font-size: 11px;
-  fill: #7e97b3;
-  font-weight: 600;
 }
 
 .media-pin { cursor: pointer; }
