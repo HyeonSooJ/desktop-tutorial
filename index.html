@@ -183,17 +183,62 @@
         <div class="stat-card"><strong>2건</strong><span>언론·방송 보도</span></div>
       </div>
 
-      <div class="award-list">
-        <h3>주요 활동 내역</h3>
-        <ul>
-          <li><span class="award-year">2026.07</span>누적 회원 1,500명 돌파 &amp; 지상파 방송 출연</li>
-          <li><span class="award-year">2026.05</span>한국투자증권 기업협력 MOU 체결</li>
-          <li><span class="award-year">2026.05</span>한국투자증권 주최 대회 입상</li>
-          <li><span class="award-year">2026.04</span>회원수 1,000명 돌파 &amp; 언론 보도</li>
-          <li><span class="award-year">2026.02</span>금융AI 스터디 프로그램 론칭</li>
-          <li><span class="award-year">2025.12</span>1기 회원 모집 &amp; 5개 팀 체제 구축</li>
-          <li><span class="award-year">2025.11</span>더헌터스 창립</li>
-        </ul>
+      <div class="media-map">
+        <h3>주요 보도 &amp; 협력 현황</h3>
+        <p class="media-map-desc">지도의 위치를 클릭하면 관련 소식을 확인할 수 있습니다.</p>
+        <div class="media-map-body">
+          <svg class="kr-map" viewBox="-10 -10 620 500" role="img" aria-labelledby="krMapTitle">
+            <title id="krMapTitle">대한민국 지도와 더헌터스 보도·협력 위치</title>
+            <polygon class="kr-shape" points="150,8 215,10 250,55 238,140 222,230 232,300 248,355 232,405 205,430 175,448 150,462 120,445 95,460 70,435 48,405 35,355 45,300 28,250 42,205 30,155 52,120 68,75 95,35" />
+            <ellipse class="kr-jeju" cx="140" cy="497" rx="26" ry="13" />
+            <line class="leader-line" x1="112" y1="48" x2="270" y2="150" />
+            <g class="seoul-dot">
+              <circle class="pulse" cx="110" cy="48" r="9" />
+              <circle class="dot" cx="110" cy="48" r="4" />
+              <text x="122" y="52">서울</text>
+            </g>
+
+            <circle class="inset-bubble" cx="420" cy="150" r="150" />
+            <text x="420" y="18" class="inset-label" text-anchor="middle">서울 주요 위치</text>
+            <path class="han-river" d="M 275,195 C 330,165 380,220 430,195 C 470,175 510,195 565,180" />
+            <text x="380" y="235" class="river-label">한강</text>
+
+            <g class="media-pin" data-key="joongang" tabindex="0" role="button" aria-label="중앙일보 위치, 클릭하여 소식 보기">
+              <rect class="pin-hit" x="322" y="52" width="66" height="66" />
+              <line class="pin-leader" x1="368" y1="98" x2="345" y2="80" />
+              <circle class="pin-dot" cx="368" cy="98" r="7" />
+              <text x="342" y="72">중앙일보</text>
+            </g>
+            <g class="media-pin" data-key="khan" tabindex="0" role="button" aria-label="경향신문 위치, 클릭하여 소식 보기">
+              <rect class="pin-hit" x="384" y="42" width="70" height="66" />
+              <line class="pin-leader" x1="404" y1="88" x2="430" y2="65" />
+              <circle class="pin-dot" cx="404" cy="88" r="7" />
+              <text x="434" y="62">경향신문</text>
+            </g>
+            <g class="media-pin" data-key="newspim" tabindex="0" role="button" aria-label="뉴스핌 위치, 클릭하여 소식 보기">
+              <rect class="pin-hit" x="432" y="188" width="92" height="58" />
+              <line class="pin-leader" x1="452" y1="208" x2="500" y2="222" />
+              <circle class="pin-dot" cx="452" cy="208" r="7" />
+              <text x="504" y="226">뉴스핌</text>
+            </g>
+            <g class="media-pin" data-key="kis" tabindex="0" role="button" aria-label="한국투자증권 위치, 클릭하여 소식 보기">
+              <rect class="pin-hit" x="462" y="137" width="82" height="71" />
+              <line class="pin-leader" x1="482" y1="188" x2="520" y2="160" />
+              <circle class="pin-dot" cx="482" cy="188" r="7" />
+              <text x="524" y="157">한국투자증권</text>
+            </g>
+            <g class="media-pin" data-key="sbs" tabindex="0" role="button" aria-label="SBS 위치, 클릭하여 소식 보기">
+              <rect class="pin-hit" x="266" y="202" width="82" height="75" />
+              <line class="pin-leader" x1="328" y1="222" x2="290" y2="240" />
+              <circle class="pin-dot" cx="328" cy="222" r="7" />
+              <text x="286" y="257">SBS</text>
+            </g>
+          </svg>
+
+          <div class="media-detail" id="mediaDetail">
+            <p class="media-detail-placeholder">지도에서 위치를 선택하면 자세한 내용을 확인할 수 있습니다.</p>
+          </div>
+        </div>
       </div>
 
       <div class="project-grid">

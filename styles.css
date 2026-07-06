@@ -407,34 +407,184 @@ h3 { font-size: 1.2rem; }
 
 .stat-card span { color: #9a9a9a; font-size: 0.9rem; }
 
-.award-list {
-  max-width: 680px;
+.media-map {
+  max-width: 920px;
   margin: 0 auto 64px;
   background: var(--color-bg-alt);
   border-radius: var(--radius);
   padding: 40px;
 }
 
-.award-list h3 { text-align: center; margin-bottom: 24px; }
+.media-map h3 { text-align: center; margin-bottom: 8px; }
 
-.award-list ul { display: flex; flex-direction: column; gap: 16px; }
-
-.award-list li {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text);
-  font-weight: 500;
+.media-map-desc {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  margin: 0 0 28px;
 }
 
-.award-list li:last-child { border-bottom: none; padding-bottom: 0; }
+.media-map-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+  flex-wrap: wrap;
+}
 
-.award-year {
-  color: var(--color-black);
+.kr-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  flex: 1 1 460px;
+  max-width: 560px;
+  min-width: 0;
+}
+
+.kr-shape {
+  fill: #e4e4e4;
+  stroke: #bdbdbd;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.kr-jeju {
+  fill: #e4e4e4;
+  stroke: #bdbdbd;
+  stroke-width: 1.5;
+}
+
+.leader-line {
+  stroke: #b3b3b3;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.seoul-dot .pulse {
+  fill: var(--color-black);
+  opacity: 0.25;
+  animation: seoul-pulse 2.4s ease-out infinite;
+  transform-origin: 110px 48px;
+}
+
+.seoul-dot .dot { fill: var(--color-black); }
+
+.seoul-dot text {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--color-black);
+}
+
+@keyframes seoul-pulse {
+  0% { transform: scale(1); opacity: 0.35; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+.inset-bubble {
+  fill: #fff;
+  stroke: var(--color-black);
+  stroke-width: 1.5;
+}
+
+.inset-label {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.han-river {
+  fill: none;
+  stroke: #bcd4ee;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+.river-label {
+  font-size: 11px;
+  fill: #7e97b3;
+  font-weight: 600;
+}
+
+.media-pin { cursor: pointer; }
+
+.media-pin .pin-hit {
+  fill: transparent;
+}
+
+.media-pin .pin-leader {
+  stroke: #9a9a9a;
+  stroke-width: 1.2;
+}
+
+.media-pin .pin-dot {
+  fill: var(--color-black);
+  stroke: #fff;
+  stroke-width: 2;
+  transition: r 0.15s ease, fill 0.15s ease;
+}
+
+.media-pin text {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--color-text);
+  transition: fill 0.15s ease;
+}
+
+.media-pin:hover .pin-dot,
+.media-pin:focus-visible .pin-dot,
+.media-pin.active .pin-dot {
+  fill: var(--color-up);
+  r: 9;
+}
+
+.media-pin:hover text,
+.media-pin:focus-visible text,
+.media-pin.active text {
+  fill: var(--color-up);
+}
+
+.media-pin:focus-visible {
+  outline: 2px dashed var(--color-up);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.media-detail {
+  flex: 1 1 260px;
+  min-width: 240px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-black);
+  border-radius: var(--radius);
+  padding: 28px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.media-detail-placeholder {
+  color: var(--color-text-muted);
+  margin: 0;
+  text-align: center;
+}
+
+.media-detail-name {
   font-weight: 800;
-  min-width: 48px;
+  font-size: 1.1rem;
+  color: var(--color-black);
+}
+
+.media-detail-meta {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.media-detail-link {
+  margin-top: 8px;
+  align-self: flex-start;
 }
 
 .project-grid {
@@ -552,6 +702,8 @@ h3 { font-size: 1.2rem; }
   .achievement-stats { grid-template-columns: 1fr 1fr; }
   .project-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
+  .media-map-body { flex-direction: column; }
+  .media-detail { width: 100%; }
 }
 
 @media (max-width: 560px) {
@@ -559,5 +711,5 @@ h3 { font-size: 1.2rem; }
   .achievement-stats { grid-template-columns: 1fr 1fr; }
   .hero { padding: 76px 0 60px; }
   .hero-stats { gap: 32px; }
-  .award-list { padding: 28px 20px; }
+  .media-map { padding: 28px 20px; }
 }
