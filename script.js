@@ -97,8 +97,6 @@ const MI_MIN_YEAR = 2020;
 const MI_MAX_YEAR = 2026;
 const MI_ROUNDS = 2;
 const MI_CHECKPOINTS = 4;
-const MI_CANDLE_WINDOW = 20;
-const MI_RESULT_CANDLE_WINDOW = 30;
 
 // 2020년 이전에 상장되어 있던 국내 종목 목록 (실제 상장사명/종목코드)
 // 가격 데이터는 하드코딩하지 않고, 선택된 종목만 data/ohlc/<code>.json에서 실시간으로 불러온다
@@ -297,6 +295,8 @@ const miCandleChart = (ohlc, fromIdx, toIdx) => {
   const slotW = (MI_CANDLE_W - MI_CANDLE_PAD_X * 2) / count;
   const bodyW = Math.max(2, slotW * 0.6);
 
+  let lastLabelSvg = '';
+
   const candles = idxs.map((i, pos) => {
     const o = ohlc.o[i];
     const h = ohlc.h[i];
@@ -313,6 +313,13 @@ const miCandleChart = (ohlc, fromIdx, toIdx) => {
     const bodyH = Math.max(1, Math.abs(yClose - yOpen));
     const isLast = i === toIdx;
     const strokeAttr = isLast ? ' stroke="var(--color-black)" stroke-width="1"' : '';
+    if (isLast) {
+      const topLimit = MI_CANDLE_PAD_TOP + 10;
+      const bottomLimit = MI_CANDLE_H - MI_CANDLE_PAD_BOTTOM - 6;
+      let labelY = yHigh - 8;
+      if (labelY < topLimit) labelY = Math.min(yLow + 18, bottomLimit);
+      lastLabelSvg = `<text x="${MI_CANDLE_W - MI_CANDLE_PAD_X}" y="${labelY.toFixed(1)}" text-anchor="end" class="chart-label chart-callout">${formatWon(c)}</text>`;
+    }
     return `<line x1="${cx.toFixed(1)}" y1="${yHigh.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yLow.toFixed(1)}" stroke="${color}" stroke-width="1" />`
       + `<rect x="${(cx - bodyW / 2).toFixed(1)}" y="${bodyTop.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${color}"${strokeAttr} />`;
   }).join('');
@@ -321,6 +328,7 @@ const miCandleChart = (ohlc, fromIdx, toIdx) => {
     <div class="quiz-chart-wrap">
       <svg viewBox="0 0 ${MI_CANDLE_W} ${MI_CANDLE_H}" class="quiz-chart" role="img" aria-label="일별 캔들 차트 (양봉/음봉)">
         ${candles}
+        ${lastLabelSvg}
         <text x="${MI_CANDLE_PAD_X}" y="${MI_CANDLE_H - 8}" class="chart-label">${ohlc.d[fromIdx]}</text>
         <text x="${MI_CANDLE_W - MI_CANDLE_PAD_X}" y="${MI_CANDLE_H - 8}" text-anchor="end" class="chart-label">${ohlc.d[toIdx]}</text>
       </svg>
@@ -411,7 +419,7 @@ const renderMiStockStep = () => {
   mockinvestApp.innerHTML = `
     <h3>2단계 · 투자 종목 선택 (2020년 이전 상장 종목, ${MI_STOCK_POOL.length}개)</h3>
     <p class="mi-help">모의투자를 진행할 종목 2개를 선택하세요. 각 종목당 1라운드씩, 총 2라운드로 진행됩니다.</p>
-    <input type="text" class="mi-select mi-stock-search" id="miStockSearch" placeholder="종목명 또는 종목코드로 검색">
+    <input type="text" class="mi-select mi-stock-search" id="miStockSearch" placeholder="종목명으로 검색">
     <div class="mi-stock-grid" id="miStockGrid"></div>
     <p class="mi-error" id="miStockError" hidden>종목을 정확히 2개 선택해주세요.</p>
     <div class="quiz-actions">
@@ -463,14 +471,15 @@ const renderMiRoundStep = () => {
 
   const total = miCash + miHoldings * price;
   const returnPct = ((total - miRoundStartCash) / miRoundStartCash) * 100;
-  const fromIdx = Math.max(0, idx - (MI_CANDLE_WINDOW - 1));
+  // 1분기부터 현재 분기까지 차트를 누적해서 보여준다
+  const roundStartIdx = miFindCheckpointIndex(miCurrentOhlc, miFractionalYearToDate(years[0]));
   const periodLabel = isLast ? '5분기 · 최종 정산가' : `${miCheckpointIndex + 1}분기`;
 
   mockinvestApp.innerHTML = `
     <h3>라운드 ${miRoundIndex + 1} / ${MI_ROUNDS} · ${stock.name}</h3>
     <p class="mi-help">${periodLabel} · ${miFormatPeriodLabel(year)} (실제 거래일 ${miCurrentOhlc.d[idx]})${isLast ? ' — 이 시점은 매수/매도 없이 보유 주식이 이 가격에 자동 매도됩니다.' : ''}</p>
 
-    ${miCandleChart(miCurrentOhlc, fromIdx, idx)}
+    ${miCandleChart(miCurrentOhlc, roundStartIdx, idx)}
 
     <div class="portfolio-stats">
       <div class="stat-card"><strong>${formatWon(price)}</strong><span>${isLast ? '정산가' : '현재가'}</span></div>
@@ -537,11 +546,12 @@ const renderMiRoundResult = (stock, finalIdx) => {
   miRoundResults.push({ name: stock.name, finalValue, returnPct });
 
   const isLastRound = miRoundIndex === MI_ROUNDS - 1;
-  const fromIdx = Math.max(0, finalIdx - (MI_RESULT_CANDLE_WINDOW - 1));
+  const years = miCheckpointYears(miStartYear, miEndYear);
+  const roundStartIdx = miFindCheckpointIndex(miCurrentOhlc, miFractionalYearToDate(years[0]));
 
   mockinvestApp.innerHTML = `
     <h3>라운드 ${miRoundIndex + 1} 결과 · ${stock.name}</h3>
-    ${miCandleChart(miCurrentOhlc, fromIdx, finalIdx)}
+    ${miCandleChart(miCurrentOhlc, roundStartIdx, finalIdx)}
     <div class="portfolio-stats">
       <div class="stat-card"><strong>${formatWon(finalValue)}</strong><span>최종 자산</span></div>
       <div class="stat-card"><strong style="color:${returnPct > 0 ? 'var(--color-up)' : returnPct < 0 ? 'var(--color-down)' : '#fff'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</strong><span>라운드 수익률</span></div>
