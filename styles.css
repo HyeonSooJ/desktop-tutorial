@@ -640,6 +640,9 @@ h3 { font-size: 1.2rem; }
   color: var(--color-black);
 }
 
+.tool-embed { padding: 100px 0; background: var(--color-bg); }
+.tool-embed-alt { background: var(--color-bg-alt); }
+
 /* Contact */
 .contact { padding: 100px 0; background: var(--color-bg-alt); }
 
