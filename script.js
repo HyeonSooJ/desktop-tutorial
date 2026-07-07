@@ -97,144 +97,163 @@ const MI_MIN_YEAR = 2020;
 const MI_MAX_YEAR = 2026;
 const MI_ROUNDS = 2;
 const MI_CHECKPOINTS = 4;
+const MI_CANDLE_WINDOW = 20;
+const MI_RESULT_CANDLE_WINDOW = 30;
 
-// 2020년 이전에 상장되어 있던 국내 종목의 실제 KRX 종가 데이터
-// (FinanceData/marcap 데이터셋 기준, 매년 1월 첫 거래일 종가, 2020~2026년 7개 시점)
-const MI_STOCKS = [
-  { key: '005930', name: '삼성전자', prices: [55200, 83000, 78600, 55500, 79600, 53400, 128500] },
-  { key: '000660', name: 'SK하이닉스', prices: [94700, 126000, 128500, 75700, 142400, 171200, 677000] },
-  { key: '207940', name: '삼성바이오로직스', prices: [428500, 829000, 911000, 827000, 789000, 934000, 1683000] },
-  { key: '005380', name: '현대차', prices: [118000, 207500, 210500, 157000, 200500, 211500, 298500] },
-  { key: '000270', name: '기아', prices: [42500, 64000, 82600, 61500, 97600, 101600, 120600] },
-  { key: '051910', name: 'LG화학', prices: [314000, 889000, 618000, 604000, 493500, 242500, 322500] },
-  { key: '006400', name: '삼성SDI', prices: [232000, 671000, 650000, 602000, 467000, 239500, 262500] },
-  { key: '035420', name: 'NAVER', prices: [182500, 293000, 376000, 179500, 227500, 193800, 247000] },
-  { key: '035720', name: '카카오', prices: [152500, 396000, 114500, 52700, 57900, 37450, 62100] },
-  { key: '105560', name: 'KB금융', prices: [46550, 42450, 55300, 47600, 53600, 83400, 123300] },
-  { key: '055550', name: '신한지주', prices: [42600, 31550, 37250, 34300, 39350, 47750, 76600] },
-  { key: '086790', name: '하나금융지주', prices: [35950, 33450, 42350, 40800, 42800, 56800, 93400] },
-  { key: '316140', name: '우리금융지주', prices: [11400, 9510, 12800, 11250, 12840, 15290, 28050] },
-  { key: '012330', name: '현대모비스', prices: [247500, 287000, 256500, 202500, 236000, 249000, 369000] },
-  { key: '028260', name: '삼성물산', prices: [107500, 144000, 117500, 111500, 129300, 113300, 245000] },
-  { key: '015760', name: '한국전력', prices: [28500, 26900, 22350, 19350, 18840, 19560, 46500] },
-  { key: '032830', name: '삼성생명', prices: [73100, 78000, 64500, 70400, 68200, 91500, 156300] },
-  { key: '009150', name: '삼성전기', prices: [126500, 180000, 194500, 132500, 158100, 122400, 270000] },
-  { key: '010130', name: '고려아연', prices: [424000, 401000, 510000, 539000, 486000, 957000, 1287000] },
-  { key: '011170', name: '롯데케미칼', prices: [218500, 279500, 217000, 175500, 146200, 57800, 67500] },
-  { key: '096770', name: 'SK이노베이션', prices: [146500, 231000, 248000, 155000, 140200, 111000, 99900] },
-  { key: '018260', name: '삼성에스디에스', prices: [192000, 186000, 156500, 120500, 169600, 124500, 175100] },
-  { key: '034730', name: 'SK', prices: [258000, 249500, 255500, 185000, 180500, 132000, 259000] },
-  { key: '017670', name: 'SK텔레콤', prices: [234000, 237000, 57200, 47250, 49950, 56100, 53300] },
-  { key: '030200', name: 'KT', prices: [26700, 23800, 30350, 32500, 34150, 43950, 51300] },
-  { key: '003550', name: 'LG', prices: [71100, 96900, 81000, 76600, 84800, 72200, 81000] },
-  { key: '066570', name: 'LG전자', prices: [71000, 142000, 139500, 86400, 101400, 84000, 91400] },
-  { key: '051900', name: 'LG생활건강', prices: [1266000, 1612000, 1104000, 720000, 354000, 306500, 270000] },
-  { key: '090430', name: '아모레퍼시픽', prices: [207500, 203000, 168000, 135000, 141200, 103400, 126900] },
-  { key: '004020', name: '현대제철', prices: [31200, 41200, 41550, 30450, 36600, 20850, 30600] },
-  { key: '010950', name: 'S-Oil', prices: [91900, 70300, 85900, 82800, 68600, 54800, 80300] },
-  { key: '011200', name: 'HMM', prices: [3750, 16550, 27300, 19350, 20600, 17700, 20200] },
-  { key: '010140', name: '삼성중공업', prices: [7220, 7300, 5680, 5080, 7860, 11500, 24150] },
-  { key: '011210', name: '현대위아', prices: [48950, 69500, 80500, 50400, 64000, 38500, 79300] },
-  { key: '024110', name: '기업은행', prices: [11550, 8620, 10350, 9460, 11790, 14380, 20750] },
-  { key: '138040', name: '메리츠금융지주', prices: [11450, 9680, 45500, 41550, 58800, 104200, 111600] },
-  { key: '000810', name: '삼성화재', prices: [238500, 183000, 204500, 194500, 260000, 355500, 497000] },
-  { key: '032640', name: 'LG유플러스', prices: [13850, 11850, 13650, 10750, 10170, 10380, 14430] },
-  { key: '003670', name: '포스코퓨처엠', prices: [49350, 118000, 143500, 191500, 352000, 137900, 176900] },
-  { key: '005490', name: 'POSCO홀딩스', prices: [236000, 273000, 280000, 272000, 488000, 250000, 297500] },
-  { key: '068270', name: '셀트리온', prices: [180000, 347500, 198500, 160000, 231500, 180300, 202500] },
-  { key: '196170', name: '알테오젠', prices: [69800, 172500, 74600, 39600, 91500, 300000, 457000] },
-  { key: '036570', name: '엔씨소프트', prices: [541000, 978000, 667000, 431500, 240000, 182000, 216500] },
-  { key: '251270', name: '넷마블', prices: [90300, 131000, 127500, 55900, 58000, 50600, 49550] },
-  { key: '036460', name: '한국가스공사', prices: [37350, 30800, 38350, 33250, 24600, 34100, 38400] },
-  { key: '016360', name: '삼성증권', prices: [37850, 40800, 44200, 30400, 38100, 43050, 75900] },
-  { key: '005940', name: 'NH투자증권', prices: [12500, 11200, 12200, 8500, 10160, 13990, 21300] },
-  { key: '039490', name: '키움증권', prices: [79000, 134500, 107000, 80900, 97800, 112400, 301500] },
-  { key: '078930', name: 'GS', prices: [50000, 37800, 39400, 42600, 40550, 38800, 55300] },
-  { key: '011780', name: '금호석유', prices: [76000, 151000, 167000, 121000, 129300, 89000, 117200] },
-  { key: '010060', name: 'OCI', prices: [62800, 98500, 103500, 78100, 101200, 58500, 105500] },
-  { key: '004990', name: '롯데지주', prices: [37700, 35100, 29850, 30050, 26350, 20900, 26050] },
-  { key: '097950', name: 'CJ제일제당', prices: [245000, 384500, 379500, 376500, 323000, 247500, 207000] },
-  { key: '001040', name: 'CJ', prices: [93800, 92100, 84000, 84700, 93400, 97500, 173300] },
-  { key: '079160', name: 'CJ CGV', prices: [34400, 26200, 25150, 17050, 5900, 5290, 5820] },
-  { key: '035760', name: 'CJ ENM', prices: [155600, 141800, 139800, 104500, 71200, 53700, 66700] },
-  { key: '008770', name: '호텔신라', prices: [94000, 82600, 78200, 81500, 65600, 36650, 45550] },
-  { key: '271560', name: '오리온', prices: [105500, 123000, 104000, 125500, 116900, 103100, 103100] },
-  { key: '005300', name: '롯데칠성', prices: [136500, 107000, 131000, 169500, 147200, 108400, 134000] },
-  { key: '002790', name: '아모레G', prices: [83200, 54000, 45000, 34850, 28750, 20750, 29000] },
-  { key: '069960', name: '현대백화점', prices: [85900, 72000, 74700, 57900, 51500, 45750, 84900] },
-  { key: '023530', name: '롯데쇼핑', prices: [135500, 101500, 86400, 91100, 74200, 52300, 68600] },
-  { key: '139480', name: '이마트', prices: [125500, 151500, 150500, 94800, 75000, 62100, 80200] },
-  { key: '282330', name: 'BGF리테일', prices: [168500, 132000, 143500, 202000, 135100, 101500, 104200] },
-  { key: '128940', name: '한미약품', prices: [293500, 357000, 285000, 279500, 358000, 278500, 443000] },
-  { key: '000100', name: '유한양행', prices: [231500, 79200, 63400, 56400, 67800, 118300, 112800] },
-  { key: '185750', name: '종근당', prices: [95200, 232500, 109500, 80400, 128700, 89100, 82800] },
-  { key: '069620', name: '대웅제약', prices: [136500, 172000, 151500, 160500, 117400, 126800, 166000] },
-  { key: '000720', name: '현대건설', prices: [41200, 38250, 46150, 33600, 34550, 25450, 69000] },
-  { key: '006360', name: 'GS건설', prices: [30500, 38050, 40050, 20050, 14730, 17350, 18820] },
-  { key: '047040', name: '대우건설', prices: [4660, 5150, 5870, 4000, 4170, 3095, 3740] },
-  { key: '028050', name: '삼성엔지니어링', prices: [19300, 13500, 22900, 23000, 26800, 16800, 23250] },
-  { key: '294870', name: 'HDC현대산업개발', prices: [25400, 26300, 23700, 9710, 14210, 17650, 20900] },
-  { key: '180640', name: '한진칼', prices: [39950, 62300, 62200, 35700, 78200, 72200, 121000] },
-  { key: '003490', name: '대한항공', prices: [27850, 27650, 29500, 22700, 23900, 23550, 22200] },
-  { key: '020560', name: '아시아나항공', prices: [5490, 4210, 20050, 13600, 11300, 10390, 7860] },
-  { key: '089590', name: '제주항공', prices: [27050, 18250, 18200, 14700, 11860, 7150, 5400] },
-  { key: '009540', name: '한국조선해양', prices: [125500, 110000, 94000, 71000, 118500, 231000, 393500] },
-  { key: '028670', name: '팬오션', prices: [4460, 5370, 5570, 5500, 3735, 3290, 3795] },
-  { key: '004000', name: '롯데정밀화학', prices: [44100, 55100, 73000, 54000, 56600, 39150, 42950] },
-  { key: '192820', name: '코스맥스', prices: [83800, 98600, 87300, 73700, 122900, 140100, 178000] },
-  { key: '096530', name: '씨젠', prices: [30950, 183800, 61500, 26050, 23000, 24200, 24450] },
-  { key: '028300', name: 'HLB', prices: [114300, 93300, 36300, 27900, 53200, 73400, 52900] },
-  { key: '068760', name: '셀트리온제약', prices: [39700, 218300, 124500, 65700, 119800, 54800, 61900] },
-  { key: '086900', name: '메디톡스', prices: [300600, 170700, 142500, 128600, 240000, 121100, 122400] },
-  { key: '145020', name: '휴젤', prices: [388200, 190000, 158900, 134400, 152800, 262500, 235000] },
-  { key: '214450', name: '파마리서치', prices: [35550, 57200, 82000, 68000, 110600, 260500, 434000] },
-  { key: '214150', name: '클래시스', prices: [13650, 15950, 18650, 17700, 37650, 52300, 58600] },
-  { key: '054450', name: '텔레칩스', prices: [11350, 14150, 18200, 11050, 33850, 13830, 16230] },
-  { key: '046890', name: '서울반도체', prices: [16100, 21200, 15600, 9940, 10520, 7100, 6380] },
-  { key: '108320', name: '실리콘웍스', prices: [39300, 62200, 167800, 69800, 87000, 56900, 50300] },
-  { key: '005290', name: '동진쎄미켐', prices: [16400, 37000, 46700, 30000, 41450, 21000, 39650] },
-  { key: '064760', name: '티씨케이', prices: [64200, 124500, 152600, 90800, 117300, 69900, 146100] },
-  { key: '066970', name: '엘앤에프', prices: [22150, 76500, 208500, 185400, 205500, 77500, 94300] },
-  { key: '086520', name: '에코프로', prices: [22850, 53400, 111500, 110000, 638000, 55200, 88300] },
-  { key: '247540', name: '에코프로비엠', prices: [53000, 187200, 480000, 93400, 283500, 105500, 141700] },
-  { key: '047050', name: '포스코인터내셔널', prices: [18350, 14550, 22500, 21600, 59200, 40100, 48300] },
-  { key: '009830', name: '한화솔루션', prices: [18500, 49200, 35550, 42850, 38600, 16150, 26750] },
-  { key: '272210', name: '한화시스템', prices: [10400, 17450, 16850, 10450, 18160, 23900, 55300] },
-  { key: '006260', name: 'LS', prices: [46900, 72500, 54500, 67300, 91600, 97100, 208500] },
-  { key: '010120', name: 'LS ELECTRIC', prices: [52600, 65000, 55600, 55100, 73300, 173400, 492500] },
-  { key: '004800', name: '효성', prices: [76300, 75400, 93000, 65600, 62400, 45950, 112500] },
-  { key: '353200', name: '대덕전자', prices: [9930, 12650, 24600, 18350, 28450, 15390, 47950] },
-  { key: '222800', name: '심텍', prices: [11800, 23950, 47050, 25600, 42200, 10920, 50800] },
-  { key: '079550', name: 'LIG넥스원', prices: [31750, 30700, 69100, 88900, 128300, 254000, 439000] },
-  { key: '012450', name: '한화에어로스페이스', prices: [34700, 29800, 49600, 73600, 129700, 363500, 946000] },
-  { key: '047810', name: '한국항공우주', prices: [33800, 26900, 32900, 49250, 51300, 55800, 116800] },
-  { key: '322000', name: '현대에너지솔루션', prices: [16500, 40250, 21200, 47900, 28150, 20400, 55300] },
-  { key: '145720', name: '덴티움', prices: [53800, 40700, 72000, 97200, 141500, 66400, 48000] },
-  { key: '041830', name: '인바디', prices: [23350, 17500, 23650, 20350, 26650, 23800, 32650] },
-  { key: '021240', name: '코웨이', prices: [90000, 73200, 73400, 55900, 55700, 67000, 85500] },
-  { key: '007310', name: '오뚜기', prices: [549000, 567000, 451500, 464500, 400000, 390500, 383000] },
-  { key: '004370', name: '농심', prices: [237000, 296500, 316000, 352000, 412500, 381500, 428500] },
-  { key: '000080', name: '하이트진로', prices: [28900, 32000, 30250, 24400, 22300, 19460, 18250] },
-  { key: '267980', name: '매일유업', prices: [84300, 69500, 68200, 50800, 41550, 34700, 34300] },
-  { key: '035250', name: '강원랜드', prices: [29250, 23350, 24200, 22900, 15840, 16230, 18400] },
-  { key: '034230', name: '파라다이스', prices: [20150, 15200, 15100, 17450, 13440, 9670, 16660] },
-  { key: '039130', name: '하나투어', prices: [52800, 57500, 75000, 59500, 52200, 54700, 48600] },
-  { key: '080160', name: '모두투어', prices: [18100, 20700, 22200, 16250, 15270, 9690, 10350] },
-  { key: '272450', name: '진에어', prices: [15300, 13800, 17350, 16000, 12060, 9790, 6910] },
-  { key: '000120', name: 'CJ대한통운', prices: [152500, 168500, 129000, 91000, 127900, 84100, 95000] },
-  { key: '086280', name: '현대글로비스', prices: [138500, 190000, 172500, 163500, 187000, 133800, 180900] },
-  { key: '002380', name: 'KCC', prices: [233500, 199000, 309000, 199500, 228500, 228000, 393000] },
-  { key: '011790', name: 'SKC', prices: [50600, 101500, 169500, 88100, 88800, 109700, 103000] },
+// 2020년 이전에 상장되어 있던 국내 종목 목록 (실제 상장사명/종목코드)
+// 가격 데이터는 하드코딩하지 않고, 선택된 종목만 data/ohlc/<code>.json에서 실시간으로 불러온다
+const MI_STOCK_POOL = [
+  { key: '005930', name: '삼성전자' },
+  { key: '000660', name: 'SK하이닉스' },
+  { key: '207940', name: '삼성바이오로직스' },
+  { key: '005380', name: '현대차' },
+  { key: '000270', name: '기아' },
+  { key: '051910', name: 'LG화학' },
+  { key: '006400', name: '삼성SDI' },
+  { key: '035420', name: 'NAVER' },
+  { key: '035720', name: '카카오' },
+  { key: '105560', name: 'KB금융' },
+  { key: '055550', name: '신한지주' },
+  { key: '086790', name: '하나금융지주' },
+  { key: '316140', name: '우리금융지주' },
+  { key: '012330', name: '현대모비스' },
+  { key: '028260', name: '삼성물산' },
+  { key: '015760', name: '한국전력' },
+  { key: '032830', name: '삼성생명' },
+  { key: '009150', name: '삼성전기' },
+  { key: '010130', name: '고려아연' },
+  { key: '011170', name: '롯데케미칼' },
+  { key: '096770', name: 'SK이노베이션' },
+  { key: '018260', name: '삼성에스디에스' },
+  { key: '034730', name: 'SK' },
+  { key: '017670', name: 'SK텔레콤' },
+  { key: '030200', name: 'KT' },
+  { key: '003550', name: 'LG' },
+  { key: '066570', name: 'LG전자' },
+  { key: '051900', name: 'LG생활건강' },
+  { key: '090430', name: '아모레퍼시픽' },
+  { key: '004020', name: '현대제철' },
+  { key: '010950', name: 'S-Oil' },
+  { key: '011200', name: 'HMM' },
+  { key: '010140', name: '삼성중공업' },
+  { key: '011210', name: '현대위아' },
+  { key: '024110', name: '기업은행' },
+  { key: '138040', name: '메리츠금융지주' },
+  { key: '000810', name: '삼성화재' },
+  { key: '032640', name: 'LG유플러스' },
+  { key: '003670', name: '포스코퓨처엠' },
+  { key: '005490', name: 'POSCO홀딩스' },
+  { key: '068270', name: '셀트리온' },
+  { key: '196170', name: '알테오젠' },
+  { key: '036570', name: '엔씨소프트' },
+  { key: '251270', name: '넷마블' },
+  { key: '036460', name: '한국가스공사' },
+  { key: '016360', name: '삼성증권' },
+  { key: '005940', name: 'NH투자증권' },
+  { key: '039490', name: '키움증권' },
+  { key: '078930', name: 'GS' },
+  { key: '011780', name: '금호석유' },
+  { key: '010060', name: 'OCI' },
+  { key: '004990', name: '롯데지주' },
+  { key: '097950', name: 'CJ제일제당' },
+  { key: '001040', name: 'CJ' },
+  { key: '079160', name: 'CJ CGV' },
+  { key: '035760', name: 'CJ ENM' },
+  { key: '008770', name: '호텔신라' },
+  { key: '271560', name: '오리온' },
+  { key: '005300', name: '롯데칠성' },
+  { key: '002790', name: '아모레G' },
+  { key: '069960', name: '현대백화점' },
+  { key: '023530', name: '롯데쇼핑' },
+  { key: '139480', name: '이마트' },
+  { key: '282330', name: 'BGF리테일' },
+  { key: '128940', name: '한미약품' },
+  { key: '000100', name: '유한양행' },
+  { key: '185750', name: '종근당' },
+  { key: '069620', name: '대웅제약' },
+  { key: '000720', name: '현대건설' },
+  { key: '006360', name: 'GS건설' },
+  { key: '047040', name: '대우건설' },
+  { key: '028050', name: '삼성엔지니어링' },
+  { key: '294870', name: 'HDC현대산업개발' },
+  { key: '180640', name: '한진칼' },
+  { key: '003490', name: '대한항공' },
+  { key: '020560', name: '아시아나항공' },
+  { key: '089590', name: '제주항공' },
+  { key: '009540', name: '한국조선해양' },
+  { key: '028670', name: '팬오션' },
+  { key: '004000', name: '롯데정밀화학' },
+  { key: '192820', name: '코스맥스' },
+  { key: '096530', name: '씨젠' },
+  { key: '028300', name: 'HLB' },
+  { key: '068760', name: '셀트리온제약' },
+  { key: '086900', name: '메디톡스' },
+  { key: '145020', name: '휴젤' },
+  { key: '214450', name: '파마리서치' },
+  { key: '214150', name: '클래시스' },
+  { key: '054450', name: '텔레칩스' },
+  { key: '046890', name: '서울반도체' },
+  { key: '108320', name: '실리콘웍스' },
+  { key: '005290', name: '동진쎄미켐' },
+  { key: '064760', name: '티씨케이' },
+  { key: '066970', name: '엘앤에프' },
+  { key: '086520', name: '에코프로' },
+  { key: '247540', name: '에코프로비엠' },
+  { key: '047050', name: '포스코인터내셔널' },
+  { key: '009830', name: '한화솔루션' },
+  { key: '272210', name: '한화시스템' },
+  { key: '006260', name: 'LS' },
+  { key: '010120', name: 'LS ELECTRIC' },
+  { key: '004800', name: '효성' },
+  { key: '353200', name: '대덕전자' },
+  { key: '222800', name: '심텍' },
+  { key: '079550', name: 'LIG넥스원' },
+  { key: '012450', name: '한화에어로스페이스' },
+  { key: '047810', name: '한국항공우주' },
+  { key: '322000', name: '현대에너지솔루션' },
+  { key: '145720', name: '덴티움' },
+  { key: '041830', name: '인바디' },
+  { key: '021240', name: '코웨이' },
+  { key: '007310', name: '오뚜기' },
+  { key: '004370', name: '농심' },
+  { key: '000080', name: '하이트진로' },
+  { key: '267980', name: '매일유업' },
+  { key: '035250', name: '강원랜드' },
+  { key: '034230', name: '파라다이스' },
+  { key: '039130', name: '하나투어' },
+  { key: '080160', name: '모두투어' },
+  { key: '272450', name: '진에어' },
+  { key: '000120', name: 'CJ대한통운' },
+  { key: '086280', name: '현대글로비스' },
+  { key: '002380', name: 'KCC' },
+  { key: '011790', name: 'SKC' },
 ];
 
-const miInterpolatePrice = (stock, year) => {
-  const idx = Math.max(0, Math.min(MI_MAX_YEAR - MI_MIN_YEAR, year - MI_MIN_YEAR));
-  const lo = Math.floor(idx);
-  const hi = Math.min(MI_MAX_YEAR - MI_MIN_YEAR, lo + 1);
-  const frac = idx - lo;
-  const p0 = stock.prices[lo];
-  const p1 = stock.prices[hi];
-  return Math.round(p0 + (p1 - p0) * frac);
+// 종목별 실제 일별 시가/고가/저가/종가(OHLC) 데이터를 지연 로딩하고 캐시한다
+// (FinanceData/marcap KRX 데이터셋 기준, 2020-01-02 ~ 2026-07-03)
+const miOhlcCache = {};
+
+const miFetchOhlc = async (code) => {
+  if (miOhlcCache[code]) return miOhlcCache[code];
+  const res = await fetch(`data/ohlc/${code}.json`);
+  const data = await res.json();
+  miOhlcCache[code] = data;
+  return data;
+};
+
+const miFractionalYearToDate = (year) => {
+  const y = Math.floor(year);
+  const frac = year - y;
+  const start = Date.UTC(y, 0, 1);
+  const end = Date.UTC(y + 1, 0, 1);
+  return new Date(start + frac * (end - start));
+};
+
+// 목표 날짜 이후 첫 실제 거래일의 인덱스를 찾는다 (주말/공휴일은 데이터에 없으므로)
+const miFindCheckpointIndex = (ohlc, targetDate) => {
+  const targetStr = targetDate.toISOString().slice(0, 10);
+  const idx = ohlc.d.findIndex((d) => d >= targetStr);
+  return idx === -1 ? ohlc.d.length - 1 : idx;
 };
 
 const miFormatPeriodLabel = (year) => {
@@ -255,53 +274,55 @@ const miCheckpointYears = (startYear, endYear) => {
 
 const formatWon = (n) => `${Math.round(n).toLocaleString('ko-KR')}원`;
 
-const MI_CHART_W = 400;
-const MI_CHART_H = 200;
-const MI_CHART_PAD_X = 24;
-const MI_CHART_PAD_TOP = 34;
-const MI_CHART_PAD_BOTTOM = 26;
+const MI_CANDLE_W = 400;
+const MI_CANDLE_H = 220;
+const MI_CANDLE_PAD_TOP = 16;
+const MI_CANDLE_PAD_BOTTOM = 26;
+const MI_CANDLE_PAD_X = 8;
 
-const miShortPeriodLabel = (year) => {
-  const label = miFormatPeriodLabel(year);
-  const m = label.match(/(\d+)년 (\d+)월/);
-  if (!m) return label;
-  return `${m[1].slice(2)}.${m[2].padStart(2, '0')}`;
-};
+// 체크포인트 시점까지의 실제 일별 캔들(양봉/음봉)을 그린다. toIdx(체크포인트 당일)를 강조 표시.
+const miCandleChart = (ohlc, fromIdx, toIdx) => {
+  const idxs = [];
+  for (let i = fromIdx; i <= toIdx; i += 1) idxs.push(i);
 
-// 지금까지 도달한 시점까지만 그려 미래 가격이 미리 보이지 않도록 한다
-const miPriceChart = (prices, years) => {
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  const range = max - min || Math.max(1, max * 0.1);
-  const innerH = MI_CHART_H - MI_CHART_PAD_TOP - MI_CHART_PAD_BOTTOM;
-  const scaleY = (p) => MI_CHART_PAD_TOP + (1 - (p - min) / range) * innerH;
-  const count = prices.length;
-  const step = count > 1 ? (MI_CHART_W - MI_CHART_PAD_X * 2) / (count - 1) : 0;
-  const points = prices.map((p, i) => [MI_CHART_PAD_X + i * step, scaleY(p)]);
+  const highs = idxs.map((i) => ohlc.h[i]);
+  const lows = idxs.map((i) => ohlc.l[i]);
+  const min = Math.min(...lows);
+  const max = Math.max(...highs);
+  const range = (max - min) || Math.max(1, max * 0.05);
+  const innerH = MI_CANDLE_H - MI_CANDLE_PAD_TOP - MI_CANDLE_PAD_BOTTOM;
+  const scaleY = (p) => MI_CANDLE_PAD_TOP + (1 - (p - min) / range) * innerH;
 
-  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const count = idxs.length;
+  const slotW = (MI_CANDLE_W - MI_CANDLE_PAD_X * 2) / count;
+  const bodyW = Math.max(2, slotW * 0.6);
 
-  const dots = points.map((p, i) => {
-    const isLast = i === points.length - 1;
-    const up = i > 0 ? prices[i] >= prices[i - 1] : true;
-    const color = isLast ? (up ? 'var(--color-up)' : 'var(--color-down)') : '#c9c9c9';
-    return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${isLast ? 5 : 3.5}" fill="${color}" />`;
+  const candles = idxs.map((i, pos) => {
+    const o = ohlc.o[i];
+    const h = ohlc.h[i];
+    const l = ohlc.l[i];
+    const c = ohlc.c[i];
+    const isUp = c >= o;
+    const color = isUp ? 'var(--color-up)' : 'var(--color-down)';
+    const cx = MI_CANDLE_PAD_X + slotW * pos + slotW / 2;
+    const yOpen = scaleY(o);
+    const yClose = scaleY(c);
+    const yHigh = scaleY(h);
+    const yLow = scaleY(l);
+    const bodyTop = Math.min(yOpen, yClose);
+    const bodyH = Math.max(1, Math.abs(yClose - yOpen));
+    const isLast = i === toIdx;
+    const strokeAttr = isLast ? ' stroke="var(--color-black)" stroke-width="1"' : '';
+    return `<line x1="${cx.toFixed(1)}" y1="${yHigh.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yLow.toFixed(1)}" stroke="${color}" stroke-width="1" />`
+      + `<rect x="${(cx - bodyW / 2).toFixed(1)}" y="${bodyTop.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${color}"${strokeAttr} />`;
   }).join('');
-
-  const priceLabels = points.map((p, i) => {
-    const labelY = p[1] > MI_CHART_H / 2 ? p[1] - 12 : p[1] + 20;
-    return `<text x="${p[0].toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" class="chart-label">${formatWon(prices[i])}</text>`;
-  }).join('');
-
-  const axisLabels = points.map((p, i) => `<text x="${p[0].toFixed(1)}" y="${MI_CHART_H - 8}" text-anchor="middle" class="chart-label">${miShortPeriodLabel(years[i])}</text>`).join('');
 
   return `
     <div class="quiz-chart-wrap">
-      <svg viewBox="0 0 ${MI_CHART_W} ${MI_CHART_H}" class="quiz-chart" role="img" aria-label="시점별 가격 변화 그래프">
-        <path d="${pathD}" fill="none" stroke="var(--color-black)" stroke-width="2.5" />
-        ${dots}
-        ${priceLabels}
-        ${axisLabels}
+      <svg viewBox="0 0 ${MI_CANDLE_W} ${MI_CANDLE_H}" class="quiz-chart" role="img" aria-label="일별 캔들 차트 (양봉/음봉)">
+        ${candles}
+        <text x="${MI_CANDLE_PAD_X}" y="${MI_CANDLE_H - 8}" class="chart-label">${ohlc.d[fromIdx]}</text>
+        <text x="${MI_CANDLE_W - MI_CANDLE_PAD_X}" y="${MI_CANDLE_H - 8}" text-anchor="end" class="chart-label">${ohlc.d[toIdx]}</text>
       </svg>
     </div>
   `;
@@ -318,6 +339,7 @@ let miCheckpointIndex = 0;
 let miCash = MI_INITIAL_CASH;
 let miHoldings = 0;
 let miRoundResults = [];
+let miCurrentOhlc = null;
 
 const renderMiPeriodStep = () => {
   const yearOptions = (selected) => {
@@ -362,8 +384,8 @@ const renderMiStockGrid = (filter) => {
   const grid = document.getElementById('miStockGrid');
   const keyword = filter.trim().toLowerCase();
   const filtered = keyword
-    ? MI_STOCKS.filter((s) => s.name.toLowerCase().includes(keyword) || s.key.includes(keyword))
-    : MI_STOCKS;
+    ? MI_STOCK_POOL.filter((s) => s.name.toLowerCase().includes(keyword) || s.key.includes(keyword))
+    : MI_STOCK_POOL;
 
   grid.innerHTML = filtered
     .map((s) => `<button class="mi-stock-btn${miSelectedKeys.includes(s.key) ? ' selected' : ''}" data-key="${s.key}" type="button">${s.name}</button>`)
@@ -386,7 +408,7 @@ const renderMiStockGrid = (filter) => {
 
 const renderMiStockStep = () => {
   mockinvestApp.innerHTML = `
-    <h3>2단계 · 투자 종목 선택 (2020년 이전 상장 종목, ${MI_STOCKS.length}개)</h3>
+    <h3>2단계 · 투자 종목 선택 (2020년 이전 상장 종목, ${MI_STOCK_POOL.length}개)</h3>
     <p class="mi-help">모의투자를 진행할 종목 2개를 선택하세요. 각 종목당 1라운드씩, 총 2라운드로 진행됩니다.</p>
     <input type="text" class="mi-select mi-stock-search" id="miStockSearch" placeholder="종목명 또는 종목코드로 검색">
     <div class="mi-stock-grid" id="miStockGrid"></div>
@@ -414,30 +436,33 @@ const renderMiStockStep = () => {
   });
 };
 
-const beginMiRound = () => {
+const beginMiRound = async () => {
   miCheckpointIndex = 0;
   miCash = MI_INITIAL_CASH;
   miHoldings = 0;
+  const stock = MI_STOCK_POOL.find((s) => s.key === miSelectedKeys[miRoundIndex]);
+  mockinvestApp.innerHTML = `<p class="mi-help">${stock.name} 실제 시세 데이터를 불러오는 중...</p>`;
+  miCurrentOhlc = await miFetchOhlc(stock.key);
   renderMiRoundStep();
 };
 
 const renderMiRoundStep = () => {
-  const stock = MI_STOCKS.find((s) => s.key === miSelectedKeys[miRoundIndex]);
+  const stock = MI_STOCK_POOL.find((s) => s.key === miSelectedKeys[miRoundIndex]);
   const years = miCheckpointYears(miStartYear, miEndYear);
   const year = years[miCheckpointIndex];
-  const price = miInterpolatePrice(stock, year);
+  const idx = miFindCheckpointIndex(miCurrentOhlc, miFractionalYearToDate(year));
+  const price = miCurrentOhlc.c[idx];
   const holdingsValue = miHoldings * price;
   const total = miCash + holdingsValue;
   const returnPct = ((total - MI_INITIAL_CASH) / MI_INITIAL_CASH) * 100;
   const isLast = miCheckpointIndex === MI_CHECKPOINTS;
-  const pricesSoFar = years.slice(0, miCheckpointIndex + 1).map((y) => miInterpolatePrice(stock, y));
-  const yearsSoFar = years.slice(0, miCheckpointIndex + 1);
+  const fromIdx = Math.max(0, idx - (MI_CANDLE_WINDOW - 1));
 
   mockinvestApp.innerHTML = `
     <h3>라운드 ${miRoundIndex + 1} / ${MI_ROUNDS} · ${stock.name}</h3>
-    <p class="mi-help">시점 ${miCheckpointIndex + 1} / ${MI_CHECKPOINTS + 1} · ${miFormatPeriodLabel(year)}</p>
+    <p class="mi-help">시점 ${miCheckpointIndex + 1} / ${MI_CHECKPOINTS + 1} · ${miFormatPeriodLabel(year)} (실제 거래일 ${miCurrentOhlc.d[idx]})</p>
 
-    ${miPriceChart(pricesSoFar, yearsSoFar)}
+    ${miCandleChart(miCurrentOhlc, fromIdx, idx)}
 
     <div class="portfolio-stats">
       <div class="stat-card"><strong>${formatWon(price)}</strong><span>현재가</span></div>
@@ -486,7 +511,7 @@ const renderMiRoundStep = () => {
 
   document.getElementById('miNextCheckpoint').addEventListener('click', () => {
     if (isLast) {
-      renderMiRoundResult(stock, price);
+      renderMiRoundResult(stock, idx);
     } else {
       miCheckpointIndex += 1;
       renderMiRoundStep();
@@ -494,18 +519,18 @@ const renderMiRoundStep = () => {
   });
 };
 
-const renderMiRoundResult = (stock, finalPrice) => {
+const renderMiRoundResult = (stock, finalIdx) => {
+  const finalPrice = miCurrentOhlc.c[finalIdx];
   const finalValue = miCash + miHoldings * finalPrice;
   const returnPct = ((finalValue - MI_INITIAL_CASH) / MI_INITIAL_CASH) * 100;
   miRoundResults.push({ name: stock.name, finalValue, returnPct });
 
   const isLastRound = miRoundIndex === MI_ROUNDS - 1;
-  const years = miCheckpointYears(miStartYear, miEndYear);
-  const allPrices = years.map((y) => miInterpolatePrice(stock, y));
+  const fromIdx = Math.max(0, finalIdx - (MI_RESULT_CANDLE_WINDOW - 1));
 
   mockinvestApp.innerHTML = `
     <h3>라운드 ${miRoundIndex + 1} 결과 · ${stock.name}</h3>
-    ${miPriceChart(allPrices, years)}
+    ${miCandleChart(miCurrentOhlc, fromIdx, finalIdx)}
     <div class="portfolio-stats">
       <div class="stat-card"><strong>${formatWon(finalValue)}</strong><span>최종 자산</span></div>
       <div class="stat-card"><strong style="color:${returnPct > 0 ? 'var(--color-up)' : returnPct < 0 ? 'var(--color-down)' : '#fff'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</strong><span>라운드 수익률</span></div>
