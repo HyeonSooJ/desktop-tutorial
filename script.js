@@ -98,15 +98,180 @@ const MI_MAX_YEAR = 2026;
 const MI_ROUNDS = 2;
 const MI_CHECKPOINTS = 4;
 
-// 2020년 상장 종목, 연도별(2020~2026) 가상 시세 (실제 시세가 아닌 시뮬레이션 데이터)
-const MI_STOCKS = [
-  { key: 'skbiopharm', name: 'SK바이오팜', prices: [98000, 150000, 90000, 75000, 68000, 82000, 95000] },
-  { key: 'kakaogames', name: '카카오게임즈', prices: [50000, 70000, 45000, 30000, 25000, 32000, 38000] },
-  { key: 'hybe', name: '빅히트(하이브)', prices: [135000, 160000, 180000, 220000, 250000, 230000, 260000] },
-  { key: 'myungshin', name: '명신산업', prices: [15000, 25000, 18000, 22000, 28000, 35000, 40000] },
-  { key: 'eruda', name: '이루다', prices: [20000, 35000, 15000, 12000, 18000, 24000, 20000] },
-  { key: 'solux', name: '소룩스', prices: [8000, 6000, 4000, 3000, 5000, 7000, 9000] },
+// 2020년 이전에 상장되어 있던 국내 종목 목록 (실제 상장사명/종목코드, 2020년 기준 대략적 주가대)
+const MI_STOCK_POOL = [
+  { code: '005930', name: '삼성전자', base: 55000 },
+  { code: '000660', name: 'SK하이닉스', base: 95000 },
+  { code: '207940', name: '삼성바이오로직스', base: 780000 },
+  { code: '005380', name: '현대차', base: 130000 },
+  { code: '000270', name: '기아', base: 40000 },
+  { code: '051910', name: 'LG화학', base: 350000 },
+  { code: '006400', name: '삼성SDI', base: 300000 },
+  { code: '035420', name: 'NAVER', base: 190000 },
+  { code: '035720', name: '카카오', base: 200000 },
+  { code: '105560', name: 'KB금융', base: 40000 },
+  { code: '055550', name: '신한지주', base: 35000 },
+  { code: '086790', name: '하나금융지주', base: 30000 },
+  { code: '316140', name: '우리금융지주', base: 10000 },
+  { code: '012330', name: '현대모비스', base: 190000 },
+  { code: '028260', name: '삼성물산', base: 100000 },
+  { code: '015760', name: '한국전력', base: 25000 },
+  { code: '032830', name: '삼성생명', base: 60000 },
+  { code: '009150', name: '삼성전기', base: 130000 },
+  { code: '010130', name: '고려아연', base: 400000 },
+  { code: '011170', name: '롯데케미칼', base: 200000 },
+  { code: '096770', name: 'SK이노베이션', base: 160000 },
+  { code: '018260', name: '삼성에스디에스', base: 150000 },
+  { code: '034730', name: 'SK', base: 250000 },
+  { code: '017670', name: 'SK텔레콤', base: 230000 },
+  { code: '030200', name: 'KT', base: 25000 },
+  { code: '003550', name: 'LG', base: 70000 },
+  { code: '066570', name: 'LG전자', base: 65000 },
+  { code: '051900', name: 'LG생활건강', base: 1300000 },
+  { code: '090430', name: '아모레퍼시픽', base: 180000 },
+  { code: '004020', name: '현대제철', base: 30000 },
+  { code: '010950', name: 'S-Oil', base: 70000 },
+  { code: '011200', name: 'HMM', base: 3000 },
+  { code: '010140', name: '삼성중공업', base: 5000 },
+  { code: '011210', name: '현대위아', base: 40000 },
+  { code: '024110', name: '기업은행', base: 8000 },
+  { code: '138040', name: '메리츠금융지주', base: 10000 },
+  { code: '000810', name: '삼성화재', base: 190000 },
+  { code: '032640', name: 'LG유플러스', base: 12000 },
+  { code: '003670', name: '포스코퓨처엠', base: 60000 },
+  { code: '005490', name: 'POSCO홀딩스', base: 200000 },
+  { code: '068270', name: '셀트리온', base: 180000 },
+  { code: '091990', name: '셀트리온헬스케어', base: 50000 },
+  { code: '196170', name: '알테오젠', base: 40000 },
+  { code: '036570', name: '엔씨소프트', base: 700000 },
+  { code: '251270', name: '넷마블', base: 100000 },
+  { code: '036460', name: '한국가스공사', base: 30000 },
+  { code: '016360', name: '삼성증권', base: 35000 },
+  { code: '005940', name: 'NH투자증권', base: 9000 },
+  { code: '039490', name: '키움증권', base: 90000 },
+  { code: '078930', name: 'GS', base: 40000 },
+  { code: '011780', name: '금호석유', base: 90000 },
+  { code: '010060', name: 'OCI', base: 100000 },
+  { code: '004990', name: '롯데지주', base: 35000 },
+  { code: '097950', name: 'CJ제일제당', base: 350000 },
+  { code: '001040', name: 'CJ', base: 90000 },
+  { code: '079160', name: 'CJ CGV', base: 25000 },
+  { code: '035760', name: 'CJ ENM', base: 150000 },
+  { code: '008770', name: '호텔신라', base: 80000 },
+  { code: '271560', name: '오리온', base: 110000 },
+  { code: '005300', name: '롯데칠성', base: 130000 },
+  { code: '002790', name: '아모레G', base: 45000 },
+  { code: '069960', name: '현대백화점', base: 65000 },
+  { code: '023530', name: '롯데쇼핑', base: 100000 },
+  { code: '139480', name: '이마트', base: 130000 },
+  { code: '282330', name: 'BGF리테일', base: 150000 },
+  { code: '128940', name: '한미약품', base: 300000 },
+  { code: '000100', name: '유한양행', base: 60000 },
+  { code: '185750', name: '종근당', base: 100000 },
+  { code: '069620', name: '대웅제약', base: 130000 },
+  { code: '000720', name: '현대건설', base: 40000 },
+  { code: '006360', name: 'GS건설', base: 30000 },
+  { code: '047040', name: '대우건설', base: 4000 },
+  { code: '028050', name: '삼성엔지니어링', base: 15000 },
+  { code: '294870', name: 'HDC현대산업개발', base: 25000 },
+  { code: '180640', name: '한진칼', base: 60000 },
+  { code: '003490', name: '대한항공', base: 25000 },
+  { code: '020560', name: '아시아나항공', base: 4000 },
+  { code: '089590', name: '제주항공', base: 25000 },
+  { code: '009540', name: '한국조선해양', base: 90000 },
+  { code: '010620', name: '현대미포조선', base: 40000 },
+  { code: '028670', name: '팬오션', base: 4000 },
+  { code: '004000', name: '롯데정밀화학', base: 30000 },
+  { code: '192820', name: '코스맥스', base: 100000 },
+  { code: '096530', name: '씨젠', base: 40000 },
+  { code: '028300', name: 'HLB', base: 20000 },
+  { code: '068760', name: '셀트리온제약', base: 40000 },
+  { code: '086900', name: '메디톡스', base: 250000 },
+  { code: '145020', name: '휴젤', base: 400000 },
+  { code: '214450', name: '파마리서치', base: 30000 },
+  { code: '214150', name: '클래시스', base: 15000 },
+  { code: '054450', name: '텔레칩스', base: 10000 },
+  { code: '046890', name: '서울반도체', base: 15000 },
+  { code: '108320', name: '실리콘웍스', base: 40000 },
+  { code: '005290', name: '동진쎄미켐', base: 20000 },
+  { code: '064760', name: '티씨케이', base: 40000 },
+  { code: '066970', name: '엘앤에프', base: 40000 },
+  { code: '086520', name: '에코프로', base: 40000 },
+  { code: '247540', name: '에코프로비엠', base: 100000 },
+  { code: '047050', name: '포스코인터내셔널', base: 15000 },
+  { code: '009830', name: '한화솔루션', base: 25000 },
+  { code: '272210', name: '한화시스템', base: 15000 },
+  { code: '006260', name: 'LS', base: 60000 },
+  { code: '010120', name: 'LS ELECTRIC', base: 40000 },
+  { code: '004800', name: '효성', base: 60000 },
+  { code: '353200', name: '대덕전자', base: 15000 },
+  { code: '222800', name: '심텍', base: 8000 },
+  { code: '079550', name: 'LIG넥스원', base: 30000 },
+  { code: '012450', name: '한화에어로스페이스', base: 25000 },
+  { code: '047810', name: '한국항공우주', base: 25000 },
+  { code: '322000', name: '현대에너지솔루션', base: 20000 },
+  { code: '048260', name: '오스템임플란트', base: 100000 },
+  { code: '145720', name: '덴티움', base: 30000 },
+  { code: '041830', name: '인바디', base: 20000 },
+  { code: '021240', name: '코웨이', base: 70000 },
+  { code: '007310', name: '오뚜기', base: 500000 },
+  { code: '004370', name: '농심', base: 250000 },
+  { code: '000080', name: '하이트진로', base: 30000 },
+  { code: '267980', name: '매일유업', base: 60000 },
+  { code: '035250', name: '강원랜드', base: 25000 },
+  { code: '034230', name: '파라다이스', base: 15000 },
+  { code: '039130', name: '하나투어', base: 40000 },
+  { code: '080160', name: '모두투어', base: 15000 },
+  { code: '272450', name: '진에어', base: 15000 },
+  { code: '000120', name: 'CJ대한통운', base: 130000 },
+  { code: '086280', name: '현대글로비스', base: 130000 },
+  { code: '002380', name: 'KCC', base: 200000 },
+  { code: '011790', name: 'SKC', base: 100000 },
 ];
+
+// 종목코드를 시드로 한 결정론적 의사난수 생성기 (실제 시세 데이터가 없어 연도별 가상 흐름을 생성)
+const miHashSeed = (str) => {
+  let h = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  }
+  return h >>> 0;
+};
+
+const miMulberry32 = (seed) => {
+  let a = seed;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+const miRoundToTick = (price) => {
+  if (price >= 500000) return Math.round(price / 1000) * 1000;
+  if (price >= 100000) return Math.round(price / 500) * 500;
+  if (price >= 10000) return Math.round(price / 100) * 100;
+  if (price >= 1000) return Math.round(price / 10) * 10;
+  return Math.max(100, Math.round(price));
+};
+
+const miGeneratePrices = (code, base) => {
+  const rand = miMulberry32(miHashSeed(code));
+  const prices = [base];
+  for (let i = 0; i < 6; i += 1) {
+    const drift = (rand() - 0.45) * 0.5;
+    const next = prices[prices.length - 1] * (1 + drift);
+    prices.push(miRoundToTick(next));
+  }
+  return prices;
+};
+
+const MI_STOCKS = MI_STOCK_POOL.map((s) => ({
+  key: s.code,
+  name: s.name,
+  prices: miGeneratePrices(s.code, s.base),
+}));
 
 const miInterpolatePrice = (stock, year) => {
   const idx = Math.max(0, Math.min(MI_MAX_YEAR - MI_MIN_YEAR, year - MI_MIN_YEAR));
@@ -187,22 +352,18 @@ const renderMiPeriodStep = () => {
   });
 };
 
-const renderMiStockStep = () => {
-  mockinvestApp.innerHTML = `
-    <h3>2단계 · 투자 종목 선택 (2020년 상장 종목)</h3>
-    <p class="mi-help">모의투자를 진행할 종목 2개를 선택하세요. 각 종목당 1라운드씩, 총 2라운드로 진행됩니다.</p>
-    <div class="mi-stock-grid" id="miStockGrid">
-      ${MI_STOCKS.map((s) => `<button class="mi-stock-btn" data-key="${s.key}" type="button">${s.name}</button>`).join('')}
-    </div>
-    <p class="mi-error" id="miStockError" hidden>종목을 정확히 2개 선택해주세요.</p>
-    <div class="quiz-actions">
-      <button class="btn btn-outline" id="miStockBack">이전</button>
-      <button class="btn btn-primary" id="miStockNext">투자 시작 →</button>
-    </div>
-  `;
+const renderMiStockGrid = (filter) => {
+  const grid = document.getElementById('miStockGrid');
+  const keyword = filter.trim().toLowerCase();
+  const filtered = keyword
+    ? MI_STOCKS.filter((s) => s.name.toLowerCase().includes(keyword) || s.key.includes(keyword))
+    : MI_STOCKS;
 
-  const stockBtns = mockinvestApp.querySelectorAll('.mi-stock-btn');
-  stockBtns.forEach((btn) => {
+  grid.innerHTML = filtered
+    .map((s) => `<button class="mi-stock-btn${miSelectedKeys.includes(s.key) ? ' selected' : ''}" data-key="${s.key}" type="button">${s.name}</button>`)
+    .join('') || '<p class="mi-help">검색 결과가 없습니다.</p>';
+
+  grid.querySelectorAll('.mi-stock-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const key = btn.dataset.key;
       const idx = miSelectedKeys.indexOf(key);
@@ -214,6 +375,25 @@ const renderMiStockStep = () => {
         btn.classList.add('selected');
       }
     });
+  });
+};
+
+const renderMiStockStep = () => {
+  mockinvestApp.innerHTML = `
+    <h3>2단계 · 투자 종목 선택 (2020년 이전 상장 종목, ${MI_STOCKS.length}개)</h3>
+    <p class="mi-help">모의투자를 진행할 종목 2개를 선택하세요. 각 종목당 1라운드씩, 총 2라운드로 진행됩니다.</p>
+    <input type="text" class="mi-select mi-stock-search" id="miStockSearch" placeholder="종목명 또는 종목코드로 검색">
+    <div class="mi-stock-grid" id="miStockGrid"></div>
+    <p class="mi-error" id="miStockError" hidden>종목을 정확히 2개 선택해주세요.</p>
+    <div class="quiz-actions">
+      <button class="btn btn-outline" id="miStockBack">이전</button>
+      <button class="btn btn-primary" id="miStockNext">투자 시작 →</button>
+    </div>
+  `;
+
+  renderMiStockGrid('');
+  document.getElementById('miStockSearch').addEventListener('input', (event) => {
+    renderMiStockGrid(event.target.value);
   });
 
   document.getElementById('miStockBack').addEventListener('click', renderMiPeriodStep);
