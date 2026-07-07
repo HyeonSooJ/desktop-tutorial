@@ -340,6 +340,7 @@ let miCash = MI_INITIAL_CASH;
 let miHoldings = 0;
 let miRoundResults = [];
 let miCurrentOhlc = null;
+let miRoundStartCash = MI_INITIAL_CASH;
 
 const renderMiPeriodStep = () => {
   const yearOptions = (selected) => {
@@ -438,7 +439,7 @@ const renderMiStockStep = () => {
 
 const beginMiRound = async () => {
   miCheckpointIndex = 0;
-  miCash = MI_INITIAL_CASH;
+  miRoundStartCash = miCash;
   miHoldings = 0;
   const stock = MI_STOCK_POOL.find((s) => s.key === miSelectedKeys[miRoundIndex]);
   mockinvestApp.innerHTML = `<p class="mi-help">${stock.name} 실제 시세 데이터를 불러오는 중...</p>`;
@@ -452,62 +453,73 @@ const renderMiRoundStep = () => {
   const year = years[miCheckpointIndex];
   const idx = miFindCheckpointIndex(miCurrentOhlc, miFractionalYearToDate(year));
   const price = miCurrentOhlc.c[idx];
-  const holdingsValue = miHoldings * price;
-  const total = miCash + holdingsValue;
-  const returnPct = ((total - MI_INITIAL_CASH) / MI_INITIAL_CASH) * 100;
   const isLast = miCheckpointIndex === MI_CHECKPOINTS;
+
+  // 5분기(마지막 시점)에는 매수/매도 없이 종가만 안내하고, 보유 중인 주식은 그 가격에 자동 매도 처리한다
+  if (isLast && miHoldings > 0) {
+    miCash += miHoldings * price;
+    miHoldings = 0;
+  }
+
+  const total = miCash + miHoldings * price;
+  const returnPct = ((total - miRoundStartCash) / miRoundStartCash) * 100;
   const fromIdx = Math.max(0, idx - (MI_CANDLE_WINDOW - 1));
+  const periodLabel = isLast ? '5분기 · 최종 정산가' : `${miCheckpointIndex + 1}분기`;
 
   mockinvestApp.innerHTML = `
     <h3>라운드 ${miRoundIndex + 1} / ${MI_ROUNDS} · ${stock.name}</h3>
-    <p class="mi-help">시점 ${miCheckpointIndex + 1} / ${MI_CHECKPOINTS + 1} · ${miFormatPeriodLabel(year)} (실제 거래일 ${miCurrentOhlc.d[idx]})</p>
+    <p class="mi-help">${periodLabel} · ${miFormatPeriodLabel(year)} (실제 거래일 ${miCurrentOhlc.d[idx]})${isLast ? ' — 이 시점은 매수/매도 없이 보유 주식이 이 가격에 자동 매도됩니다.' : ''}</p>
 
     ${miCandleChart(miCurrentOhlc, fromIdx, idx)}
 
     <div class="portfolio-stats">
-      <div class="stat-card"><strong>${formatWon(price)}</strong><span>현재가</span></div>
+      <div class="stat-card"><strong>${formatWon(price)}</strong><span>${isLast ? '정산가' : '현재가'}</span></div>
       <div class="stat-card"><strong>${formatWon(miCash)}</strong><span>보유 현금</span></div>
       <div class="stat-card"><strong>${miHoldings.toLocaleString('ko-KR')}주</strong><span>보유 수량</span></div>
       <div class="stat-card"><strong style="color:${returnPct > 0 ? 'var(--color-up)' : returnPct < 0 ? 'var(--color-down)' : '#fff'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</strong><span>현재 수익률</span></div>
     </div>
 
+    ${isLast ? '' : `
     <div class="trade-controls mi-trade-controls">
       <input type="number" min="1" step="1" value="1" class="qty-input" id="miQty">
       <button class="btn btn-primary btn-small" id="miBuyBtn">매수</button>
       <button class="btn btn-outline btn-small" id="miSellBtn">매도</button>
     </div>
     <p class="mi-error" id="miTradeError" hidden></p>
+    `}
 
     <button class="btn btn-primary mi-next-btn" id="miNextCheckpoint">${isLast ? '라운드 결과 보기 →' : '다음 시점으로 →'}</button>
   `;
 
-  const qtyInput = document.getElementById('miQty');
-  const errorEl = document.getElementById('miTradeError');
+  if (!isLast) {
+    const qtyInput = document.getElementById('miQty');
+    const errorEl = document.getElementById('miTradeError');
 
-  document.getElementById('miBuyBtn').addEventListener('click', () => {
-    const qty = Math.max(1, Math.floor(Number(qtyInput.value) || 0));
-    const cost = price * qty;
-    if (cost > miCash) {
-      errorEl.textContent = '보유 현금을 초과하는 수량은 매수할 수 없습니다.';
-      errorEl.hidden = false;
-      return;
-    }
-    miCash -= cost;
-    miHoldings += qty;
-    renderMiRoundStep();
-  });
+    document.getElementById('miBuyBtn').addEventListener('click', () => {
+      const qty = Math.max(1, Math.floor(Number(qtyInput.value) || 0));
+      const cost = price * qty;
+      if (cost > miCash) {
+        errorEl.textContent = '보유 현금을 초과하는 수량은 매수할 수 없습니다.';
+        errorEl.hidden = false;
+        return;
+      }
+      miCash -= cost;
+      miHoldings += qty;
+      renderMiRoundStep();
+    });
 
-  document.getElementById('miSellBtn').addEventListener('click', () => {
-    const qty = Math.max(1, Math.floor(Number(qtyInput.value) || 0));
-    if (qty > miHoldings) {
-      errorEl.textContent = '보유 수량을 초과하는 수량은 매도할 수 없습니다.';
-      errorEl.hidden = false;
-      return;
-    }
-    miCash += price * qty;
-    miHoldings -= qty;
-    renderMiRoundStep();
-  });
+    document.getElementById('miSellBtn').addEventListener('click', () => {
+      const qty = Math.max(1, Math.floor(Number(qtyInput.value) || 0));
+      if (qty > miHoldings) {
+        errorEl.textContent = '보유 수량을 초과하는 수량은 매도할 수 없습니다.';
+        errorEl.hidden = false;
+        return;
+      }
+      miCash += price * qty;
+      miHoldings -= qty;
+      renderMiRoundStep();
+    });
+  }
 
   document.getElementById('miNextCheckpoint').addEventListener('click', () => {
     if (isLast) {
@@ -520,9 +532,8 @@ const renderMiRoundStep = () => {
 };
 
 const renderMiRoundResult = (stock, finalIdx) => {
-  const finalPrice = miCurrentOhlc.c[finalIdx];
-  const finalValue = miCash + miHoldings * finalPrice;
-  const returnPct = ((finalValue - MI_INITIAL_CASH) / MI_INITIAL_CASH) * 100;
+  const finalValue = miCash;
+  const returnPct = ((finalValue - miRoundStartCash) / miRoundStartCash) * 100;
   miRoundResults.push({ name: stock.name, finalValue, returnPct });
 
   const isLastRound = miRoundIndex === MI_ROUNDS - 1;
@@ -549,9 +560,9 @@ const renderMiRoundResult = (stock, finalIdx) => {
 };
 
 const renderMiFinalResult = () => {
-  const totalInitial = MI_INITIAL_CASH * MI_ROUNDS;
-  const totalFinal = miRoundResults.reduce((sum, r) => sum + r.finalValue, 0);
-  const totalReturnPct = ((totalFinal - totalInitial) / totalInitial) * 100;
+  // 라운드 사이에 현금이 그대로 이어지므로, 마지막 라운드의 최종 자산이 곧 전체 최종 자산이다
+  const totalFinal = miRoundResults[miRoundResults.length - 1].finalValue;
+  const totalReturnPct = (totalFinal / MI_INITIAL_CASH) * 100 - 100;
 
   mockinvestApp.innerHTML = `
     <h3>모의투자 최종 결과</h3>
@@ -572,6 +583,8 @@ const renderMiFinalResult = () => {
 
   document.getElementById('miRestartBtn').addEventListener('click', () => {
     miSelectedKeys = [];
+    miCash = MI_INITIAL_CASH;
+    miHoldings = 0;
     renderMiPeriodStep();
   });
 };
