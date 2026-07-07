@@ -92,196 +92,277 @@ seoulDot.addEventListener('keydown', (event) => {
 
 // --- 모의투자 프로그램 ---
 
-const MOCKINVEST_STORAGE_KEY = 'hunters_mockinvest_v1';
-const MOCKINVEST_INITIAL_CASH = 10000000;
+const MI_INITIAL_CASH = 500000;
+const MI_MIN_YEAR = 2020;
+const MI_MAX_YEAR = 2026;
+const MI_ROUNDS = 2;
+const MI_CHECKPOINTS = 4;
 
-const MOCKINVEST_STOCKS = [
-  { key: 'samsung', name: '삼성전자', base: 78300 },
-  { key: 'skhynix', name: 'SK하이닉스', base: 215500 },
-  { key: 'naver', name: 'NAVER', base: 221000 },
-  { key: 'kakao', name: '카카오', base: 41200 },
-  { key: 'hyundai', name: '현대차', base: 256000 },
-  { key: 'kis', name: '한국투자증권', base: 15200 },
-  { key: 'lgenergy', name: 'LG에너지솔루션', base: 412000 },
-  { key: 'kodex200', name: 'KODEX 200', base: 36450 },
+// 2020년 상장 종목, 연도별(2020~2026) 가상 시세 (실제 시세가 아닌 시뮬레이션 데이터)
+const MI_STOCKS = [
+  { key: 'skbiopharm', name: 'SK바이오팜', prices: [98000, 150000, 90000, 75000, 68000, 82000, 95000] },
+  { key: 'kakaogames', name: '카카오게임즈', prices: [50000, 70000, 45000, 30000, 25000, 32000, 38000] },
+  { key: 'hybe', name: '빅히트(하이브)', prices: [135000, 160000, 180000, 220000, 250000, 230000, 260000] },
+  { key: 'myungshin', name: '명신산업', prices: [15000, 25000, 18000, 22000, 28000, 35000, 40000] },
+  { key: 'eruda', name: '이루다', prices: [20000, 35000, 15000, 12000, 18000, 24000, 20000] },
+  { key: 'solux', name: '소룩스', prices: [8000, 6000, 4000, 3000, 5000, 7000, 9000] },
 ];
 
-const mockinvestPrices = {};
-MOCKINVEST_STOCKS.forEach((s) => { mockinvestPrices[s.key] = { price: s.base, prevClose: s.base }; });
-
-const loadMockinvestState = () => {
-  try {
-    const raw = localStorage.getItem(MOCKINVEST_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) { /* ignore corrupt state */ }
-  return { cash: MOCKINVEST_INITIAL_CASH, holdings: {}, txLog: [] };
+const miInterpolatePrice = (stock, year) => {
+  const idx = Math.max(0, Math.min(MI_MAX_YEAR - MI_MIN_YEAR, year - MI_MIN_YEAR));
+  const lo = Math.floor(idx);
+  const hi = Math.min(MI_MAX_YEAR - MI_MIN_YEAR, lo + 1);
+  const frac = idx - lo;
+  const p0 = stock.prices[lo];
+  const p1 = stock.prices[hi];
+  return Math.round(p0 + (p1 - p0) * frac);
 };
 
-let mockinvestState = loadMockinvestState();
+const miFormatPeriodLabel = (year) => {
+  const y = Math.floor(year);
+  let month = Math.round((year - y) * 12) + 1;
+  let labelYear = y;
+  if (month > 12) { month -= 12; labelYear += 1; }
+  return `${labelYear}년 ${month}월`;
+};
 
-const saveMockinvestState = () => {
-  localStorage.setItem(MOCKINVEST_STORAGE_KEY, JSON.stringify(mockinvestState));
+const miCheckpointYears = (startYear, endYear) => {
+  const years = [];
+  for (let i = 0; i <= MI_CHECKPOINTS; i += 1) {
+    years.push(startYear + ((endYear - startYear) * i) / MI_CHECKPOINTS);
+  }
+  return years;
 };
 
 const formatWon = (n) => `${Math.round(n).toLocaleString('ko-KR')}원`;
 
-const mockinvestHoldingsValue = () => MOCKINVEST_STOCKS.reduce(
-  (sum, s) => sum + (mockinvestState.holdings[s.key] || 0) * mockinvestPrices[s.key].price,
-  0,
-);
+const mockinvestApp = document.getElementById('mockinvestApp');
 
-const renderMockinvestStats = () => {
-  const holdVal = mockinvestHoldingsValue();
-  const total = mockinvestState.cash + holdVal;
-  const returnPct = ((total - MOCKINVEST_INITIAL_CASH) / MOCKINVEST_INITIAL_CASH) * 100;
+let miStarted = false;
+let miStartYear = MI_MIN_YEAR;
+let miEndYear = MI_MAX_YEAR;
+let miSelectedKeys = [];
+let miRoundIndex = 0;
+let miCheckpointIndex = 0;
+let miCash = MI_INITIAL_CASH;
+let miHoldings = 0;
+let miRoundResults = [];
 
-  document.getElementById('statCash').textContent = formatWon(mockinvestState.cash);
-  document.getElementById('statHoldings').textContent = formatWon(holdVal);
-  document.getElementById('statTotal').textContent = formatWon(total);
+const renderMiPeriodStep = () => {
+  const yearOptions = (selected) => {
+    let opts = '';
+    for (let y = MI_MIN_YEAR; y <= MI_MAX_YEAR; y += 1) {
+      opts += `<option value="${y}" ${y === selected ? 'selected' : ''}>${y}년</option>`;
+    }
+    return opts;
+  };
 
-  const returnEl = document.getElementById('statReturn');
-  const sign = returnPct >= 0 ? '+' : '';
-  returnEl.textContent = `${sign}${returnPct.toFixed(2)}%`;
-  returnEl.style.color = returnPct > 0 ? 'var(--color-up)' : returnPct < 0 ? 'var(--color-down)' : '';
+  mockinvestApp.innerHTML = `
+    <h3>1단계 · 투자 기간 선택</h3>
+    <p class="mi-help">2020년부터 2026년 사이에서 모의투자를 진행할 기간을 선택하세요.</p>
+    <div class="mi-period-row">
+      <div class="form-group">
+        <label for="miStartYear">시작 연도</label>
+        <select id="miStartYear" class="mi-select">${yearOptions(miStartYear)}</select>
+      </div>
+      <div class="form-group">
+        <label for="miEndYear">종료 연도</label>
+        <select id="miEndYear" class="mi-select">${yearOptions(miEndYear)}</select>
+      </div>
+    </div>
+    <p class="mi-error" id="miPeriodError" hidden>종료 연도는 시작 연도보다 빠를 수 없습니다.</p>
+    <button class="btn btn-primary" id="miPeriodNext">다음 →</button>
+  `;
+
+  document.getElementById('miPeriodNext').addEventListener('click', () => {
+    const start = Number(document.getElementById('miStartYear').value);
+    const end = Number(document.getElementById('miEndYear').value);
+    if (end < start) {
+      document.getElementById('miPeriodError').hidden = false;
+      return;
+    }
+    miStartYear = start;
+    miEndYear = end;
+    renderMiStockStep();
+  });
 };
 
-const buildMockinvestTable = () => {
-  const tbody = document.getElementById('stockTableBody');
-  tbody.innerHTML = MOCKINVEST_STOCKS.map((s) => `
-      <tr>
-        <td class="stock-name">${s.name}</td>
-        <td class="num" id="price-${s.key}"></td>
-        <td class="num stock-change" id="change-${s.key}"></td>
-        <td class="num" id="owned-${s.key}"></td>
-        <td class="num" id="value-${s.key}"></td>
-        <td>
-          <div class="trade-controls">
-            <input type="number" min="1" step="1" value="1" class="qty-input" id="qty-${s.key}">
-            <button class="btn btn-primary btn-small" data-action="buy" data-key="${s.key}">매수</button>
-            <button class="btn btn-outline btn-small" data-action="sell" data-key="${s.key}">매도</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
+const renderMiStockStep = () => {
+  mockinvestApp.innerHTML = `
+    <h3>2단계 · 투자 종목 선택 (2020년 상장 종목)</h3>
+    <p class="mi-help">모의투자를 진행할 종목 2개를 선택하세요. 각 종목당 1라운드씩, 총 2라운드로 진행됩니다.</p>
+    <div class="mi-stock-grid" id="miStockGrid">
+      ${MI_STOCKS.map((s) => `<button class="mi-stock-btn" data-key="${s.key}" type="button">${s.name}</button>`).join('')}
+    </div>
+    <p class="mi-error" id="miStockError" hidden>종목을 정확히 2개 선택해주세요.</p>
+    <div class="quiz-actions">
+      <button class="btn btn-outline" id="miStockBack">이전</button>
+      <button class="btn btn-primary" id="miStockNext">투자 시작 →</button>
+    </div>
+  `;
 
-  tbody.querySelectorAll('button[data-action]').forEach((btn) => {
+  const stockBtns = mockinvestApp.querySelectorAll('.mi-stock-btn');
+  stockBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       const key = btn.dataset.key;
-      const action = btn.dataset.action;
-      const qtyInput = document.getElementById(`qty-${key}`);
-      const qty = Math.max(1, Math.floor(Number(qtyInput.value) || 0));
-      if (action === 'buy') buyMockinvestStock(key, qty);
-      else sellMockinvestStock(key, qty);
+      const idx = miSelectedKeys.indexOf(key);
+      if (idx >= 0) {
+        miSelectedKeys.splice(idx, 1);
+        btn.classList.remove('selected');
+      } else if (miSelectedKeys.length < 2) {
+        miSelectedKeys.push(key);
+        btn.classList.add('selected');
+      }
     });
   });
 
-  updateMockinvestTableValues();
-};
-
-const updateMockinvestTableValues = () => {
-  MOCKINVEST_STOCKS.forEach((s) => {
-    const p = mockinvestPrices[s.key];
-    const changePct = ((p.price - p.prevClose) / p.prevClose) * 100;
-    const changeClass = changePct > 0 ? 'up' : changePct < 0 ? 'down' : '';
-    const changeSign = changePct >= 0 ? '▲' : '▼';
-    const owned = mockinvestState.holdings[s.key] || 0;
-    const value = owned * p.price;
-
-    document.getElementById(`price-${s.key}`).textContent = formatWon(p.price);
-    const changeEl = document.getElementById(`change-${s.key}`);
-    changeEl.textContent = `${changeSign} ${Math.abs(changePct).toFixed(2)}%`;
-    changeEl.className = `num stock-change ${changeClass}`;
-    document.getElementById(`owned-${s.key}`).textContent = `${owned.toLocaleString('ko-KR')}주`;
-    document.getElementById(`value-${s.key}`).textContent = formatWon(value);
+  document.getElementById('miStockBack').addEventListener('click', renderMiPeriodStep);
+  document.getElementById('miStockNext').addEventListener('click', () => {
+    if (miSelectedKeys.length !== 2) {
+      document.getElementById('miStockError').hidden = false;
+      return;
+    }
+    miRoundIndex = 0;
+    miRoundResults = [];
+    beginMiRound();
   });
 };
 
-const renderMockinvestTxLog = () => {
-  const log = document.getElementById('txLog');
-  if (mockinvestState.txLog.length === 0) {
-    log.innerHTML = '<li class="tx-empty">아직 거래 내역이 없습니다.</li>';
-    return;
-  }
-  log.innerHTML = mockinvestState.txLog.slice(0, 20).map((tx) => `
-    <li>
-      <span class="tx-type ${tx.type === '매수' ? 'up' : 'down'}">${tx.type}</span>
-      <span>${tx.name} ${tx.qty}주 · ${formatWon(tx.price)}</span>
-      <span class="tx-time">${tx.time}</span>
-    </li>
-  `).join('');
+const beginMiRound = () => {
+  miCheckpointIndex = 0;
+  miCash = MI_INITIAL_CASH;
+  miHoldings = 0;
+  renderMiRoundStep();
 };
 
-const renderMockinvestAll = () => {
-  renderMockinvestStats();
-  updateMockinvestTableValues();
-  renderMockinvestTxLog();
-};
+const renderMiRoundStep = () => {
+  const stock = MI_STOCKS.find((s) => s.key === miSelectedKeys[miRoundIndex]);
+  const years = miCheckpointYears(miStartYear, miEndYear);
+  const year = years[miCheckpointIndex];
+  const price = miInterpolatePrice(stock, year);
+  const holdingsValue = miHoldings * price;
+  const total = miCash + holdingsValue;
+  const returnPct = ((total - MI_INITIAL_CASH) / MI_INITIAL_CASH) * 100;
+  const isLast = miCheckpointIndex === MI_CHECKPOINTS;
 
-const logMockinvestTx = (type, stock, qty, price) => {
-  mockinvestState.txLog.unshift({
-    type,
-    name: stock.name,
-    qty,
-    price,
-    time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+  mockinvestApp.innerHTML = `
+    <h3>라운드 ${miRoundIndex + 1} / ${MI_ROUNDS} · ${stock.name}</h3>
+    <p class="mi-help">시점 ${miCheckpointIndex + 1} / ${MI_CHECKPOINTS + 1} · ${miFormatPeriodLabel(year)}</p>
+
+    <div class="portfolio-stats">
+      <div class="stat-card"><strong>${formatWon(price)}</strong><span>현재가</span></div>
+      <div class="stat-card"><strong>${formatWon(miCash)}</strong><span>보유 현금</span></div>
+      <div class="stat-card"><strong>${miHoldings.toLocaleString('ko-KR')}주</strong><span>보유 수량</span></div>
+      <div class="stat-card"><strong style="color:${returnPct > 0 ? 'var(--color-up)' : returnPct < 0 ? 'var(--color-down)' : '#fff'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</strong><span>현재 수익률</span></div>
+    </div>
+
+    <div class="trade-controls mi-trade-controls">
+      <input type="number" min="1" step="1" value="1" class="qty-input" id="miQty">
+      <button class="btn btn-primary btn-small" id="miBuyBtn">매수</button>
+      <button class="btn btn-outline btn-small" id="miSellBtn">매도</button>
+    </div>
+    <p class="mi-error" id="miTradeError" hidden></p>
+
+    <button class="btn btn-primary mi-next-btn" id="miNextCheckpoint">${isLast ? '라운드 결과 보기 →' : '다음 시점으로 →'}</button>
+  `;
+
+  const qtyInput = document.getElementById('miQty');
+  const errorEl = document.getElementById('miTradeError');
+
+  document.getElementById('miBuyBtn').addEventListener('click', () => {
+    const qty = Math.max(1, Math.floor(Number(qtyInput.value) || 0));
+    const cost = price * qty;
+    if (cost > miCash) {
+      errorEl.textContent = '보유 현금을 초과하는 수량은 매수할 수 없습니다.';
+      errorEl.hidden = false;
+      return;
+    }
+    miCash -= cost;
+    miHoldings += qty;
+    renderMiRoundStep();
+  });
+
+  document.getElementById('miSellBtn').addEventListener('click', () => {
+    const qty = Math.max(1, Math.floor(Number(qtyInput.value) || 0));
+    if (qty > miHoldings) {
+      errorEl.textContent = '보유 수량을 초과하는 수량은 매도할 수 없습니다.';
+      errorEl.hidden = false;
+      return;
+    }
+    miCash += price * qty;
+    miHoldings -= qty;
+    renderMiRoundStep();
+  });
+
+  document.getElementById('miNextCheckpoint').addEventListener('click', () => {
+    if (isLast) {
+      renderMiRoundResult(stock, price);
+    } else {
+      miCheckpointIndex += 1;
+      renderMiRoundStep();
+    }
   });
 };
 
-const buyMockinvestStock = (key, qty) => {
-  const stock = MOCKINVEST_STOCKS.find((s) => s.key === key);
-  const price = mockinvestPrices[key].price;
-  const cost = price * qty;
-  if (cost > mockinvestState.cash) {
-    alert('보유 현금이 부족합니다.');
-    return;
-  }
-  mockinvestState.cash -= cost;
-  mockinvestState.holdings[key] = (mockinvestState.holdings[key] || 0) + qty;
-  logMockinvestTx('매수', stock, qty, price);
-  saveMockinvestState();
-  renderMockinvestAll();
-};
+const renderMiRoundResult = (stock, finalPrice) => {
+  const finalValue = miCash + miHoldings * finalPrice;
+  const returnPct = ((finalValue - MI_INITIAL_CASH) / MI_INITIAL_CASH) * 100;
+  miRoundResults.push({ name: stock.name, finalValue, returnPct });
 
-const sellMockinvestStock = (key, qty) => {
-  const stock = MOCKINVEST_STOCKS.find((s) => s.key === key);
-  const owned = mockinvestState.holdings[key] || 0;
-  if (qty > owned) {
-    alert('보유한 수량보다 많이 매도할 수 없습니다.');
-    return;
-  }
-  const price = mockinvestPrices[key].price;
-  mockinvestState.cash += price * qty;
-  mockinvestState.holdings[key] = owned - qty;
-  logMockinvestTx('매도', stock, qty, price);
-  saveMockinvestState();
-  renderMockinvestAll();
-};
+  const isLastRound = miRoundIndex === MI_ROUNDS - 1;
 
-const mockinvestResetBtn = document.getElementById('resetBtn');
-if (mockinvestResetBtn) {
-  mockinvestResetBtn.addEventListener('click', () => {
-    if (!confirm('모의투자 계좌를 초기화할까요? 보유 자산과 거래 내역이 모두 사라집니다.')) return;
-    mockinvestState = { cash: MOCKINVEST_INITIAL_CASH, holdings: {}, txLog: [] };
-    saveMockinvestState();
-    renderMockinvestAll();
+  mockinvestApp.innerHTML = `
+    <h3>라운드 ${miRoundIndex + 1} 결과 · ${stock.name}</h3>
+    <div class="portfolio-stats">
+      <div class="stat-card"><strong>${formatWon(finalValue)}</strong><span>최종 자산</span></div>
+      <div class="stat-card"><strong style="color:${returnPct > 0 ? 'var(--color-up)' : returnPct < 0 ? 'var(--color-down)' : '#fff'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</strong><span>라운드 수익률</span></div>
+    </div>
+    <button class="btn btn-primary mi-next-btn" id="miRoundResultNext">${isLastRound ? '최종 결과 보기 →' : '다음 라운드 시작 →'}</button>
+  `;
+
+  document.getElementById('miRoundResultNext').addEventListener('click', () => {
+    if (isLastRound) {
+      renderMiFinalResult();
+    } else {
+      miRoundIndex += 1;
+      beginMiRound();
+    }
   });
-}
+};
 
-if (document.getElementById('stockTableBody')) {
-  setInterval(() => {
-    MOCKINVEST_STOCKS.forEach((s) => {
-      const p = mockinvestPrices[s.key];
-      p.prevClose = p.price;
-      const changeRatio = (Math.random() - 0.5) * 0.04;
-      p.price = Math.max(100, Math.round((p.price * (1 + changeRatio)) / 10) * 10);
-    });
-    renderMockinvestStats();
-    updateMockinvestTableValues();
-  }, 3000);
+const renderMiFinalResult = () => {
+  const totalInitial = MI_INITIAL_CASH * MI_ROUNDS;
+  const totalFinal = miRoundResults.reduce((sum, r) => sum + r.finalValue, 0);
+  const totalReturnPct = ((totalFinal - totalInitial) / totalInitial) * 100;
 
-  buildMockinvestTable();
-  renderMockinvestAll();
-}
+  mockinvestApp.innerHTML = `
+    <h3>모의투자 최종 결과</h3>
+    <ul class="mi-result-list">
+      ${miRoundResults.map((r, i) => `
+        <li>
+          <span class="mi-result-round">라운드 ${i + 1} · ${r.name}</span>
+          <span style="color:${r.returnPct > 0 ? 'var(--color-up)' : r.returnPct < 0 ? 'var(--color-down)' : 'inherit'}">${r.returnPct >= 0 ? '+' : ''}${r.returnPct.toFixed(2)}%</span>
+        </li>
+      `).join('')}
+    </ul>
+    <div class="portfolio-stats">
+      <div class="stat-card"><strong>${formatWon(totalFinal)}</strong><span>총 최종 자산</span></div>
+      <div class="stat-card"><strong style="color:${totalReturnPct > 0 ? 'var(--color-up)' : totalReturnPct < 0 ? 'var(--color-down)' : '#fff'}">${totalReturnPct >= 0 ? '+' : ''}${totalReturnPct.toFixed(2)}%</strong><span>총 수익률</span></div>
+    </div>
+    <button class="btn btn-outline mi-next-btn" id="miRestartBtn">다시 하기</button>
+  `;
+
+  document.getElementById('miRestartBtn').addEventListener('click', () => {
+    miSelectedKeys = [];
+    renderMiPeriodStep();
+  });
+};
+
+const startMockinvest = () => {
+  if (miStarted) return;
+  miStarted = true;
+  renderMiPeriodStep();
+};
 
 // --- 주식강의 퀴즈 ---
 
@@ -700,6 +781,33 @@ const renderQuizResult = () => {
   document.getElementById('quizRetryBtn').addEventListener('click', () => startQuizSet(quizActiveSetKey));
 };
 
-if (quizCard) {
+let quizStarted = false;
+
+const startQuiz = () => {
+  if (quizStarted) return;
+  quizStarted = true;
   renderQuizMenu();
+};
+
+// --- 기타 탭: 모의투자 / 퀴즈 상호 배타적 표시 + 지연 초기화 ---
+
+const mockinvestSection = document.getElementById('mockinvest-tool');
+const quizSection = document.getElementById('quiz-tool');
+const openMockinvestLink = document.getElementById('openMockinvest');
+const openQuizLink = document.getElementById('openQuiz');
+
+if (openMockinvestLink && quizSection && mockinvestSection) {
+  openMockinvestLink.addEventListener('click', () => {
+    quizSection.hidden = true;
+    mockinvestSection.hidden = false;
+    startMockinvest();
+  });
+}
+
+if (openQuizLink && quizSection && mockinvestSection) {
+  openQuizLink.addEventListener('click', () => {
+    mockinvestSection.hidden = true;
+    quizSection.hidden = false;
+    startQuiz();
+  });
 }

@@ -643,6 +643,89 @@ h3 { font-size: 1.2rem; }
 .tool-embed { padding: 100px 0; background: var(--color-bg); }
 .tool-embed-alt { background: var(--color-bg-alt); }
 
+/* Mock invest steps */
+.mi-help {
+  color: var(--color-text-muted);
+  margin: 0 0 24px;
+}
+
+.mi-period-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 480px;
+  margin-bottom: 20px;
+}
+
+.mi-select {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--color-border);
+  font-family: inherit;
+  font-size: 1rem;
+  background: #fff;
+  width: 100%;
+}
+
+.mi-select:focus { outline: none; border-color: var(--color-black); }
+
+.mi-error {
+  color: var(--color-up);
+  font-size: 0.88rem;
+  margin: 0 0 16px;
+}
+
+.mi-stock-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.mi-stock-btn {
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--color-border);
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.mi-stock-btn:hover { border-color: var(--color-black); }
+
+.mi-stock-btn.selected {
+  background: var(--color-black);
+  border-color: var(--color-black);
+  color: #fff;
+}
+
+.mi-trade-controls {
+  justify-content: flex-start;
+  margin: 24px 0 8px;
+}
+
+.mi-next-btn { margin-top: 8px; }
+
+.mi-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 24px;
+}
+
+.mi-result-list li {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+}
+
+.mi-result-list li:last-child { border-bottom: none; padding-bottom: 0; }
+
 /* Contact */
 .contact { padding: 100px 0; background: var(--color-bg-alt); }
 
@@ -722,49 +805,7 @@ h3 { font-size: 1.2rem; }
 
 .tool-panel h3 { margin-bottom: 20px; }
 
-.tool-panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.tool-panel-head h3 { margin-bottom: 0; }
-
 .btn-small { padding: 8px 16px; font-size: 0.82rem; }
-
-.table-scroll { overflow-x: auto; }
-
-.stock-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 640px;
-}
-
-.stock-table th {
-  text-align: left;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-  padding: 0 12px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.stock-table td {
-  padding: 14px 12px;
-  border-bottom: 1px solid var(--color-border);
-  font-variant-numeric: tabular-nums;
-}
-
-.stock-table tr:last-child td { border-bottom: none; }
-
-.stock-name { font-weight: 700; }
-
-.num { text-align: right; }
-
-.stock-change.up { color: var(--color-up); }
-.stock-change.down { color: var(--color-down); }
 
 .trade-controls {
   display: flex;
@@ -784,31 +825,6 @@ h3 { font-size: 1.2rem; }
 }
 
 .qty-input:focus { outline: none; border-color: var(--color-black); }
-
-.tx-log { display: flex; flex-direction: column; gap: 12px; }
-
-.tx-log li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.9rem;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.tx-log li:last-child { border-bottom: none; padding-bottom: 0; }
-
-.tx-log .tx-empty { color: var(--color-text-muted); }
-
-.tx-type {
-  font-weight: 800;
-  min-width: 40px;
-}
-
-.tx-type.up { color: var(--color-up); }
-.tx-type.down { color: var(--color-down); }
-
-.tx-time { margin-left: auto; color: var(--color-text-muted); font-size: 0.82rem; }
 
 .quiz-card {
   background: var(--color-bg-alt);
@@ -1001,6 +1017,7 @@ h3 { font-size: 1.2rem; }
   .media-detail { width: 100%; }
   .etc-grid { grid-template-columns: 1fr; }
   .portfolio-stats { grid-template-columns: 1fr 1fr; }
+  .mi-stock-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 560px) {
@@ -1011,4 +1028,6 @@ h3 { font-size: 1.2rem; }
   .media-map { padding: 28px 20px; }
   .tool-panel { padding: 24px 20px; }
   .quiz-card { padding: 28px 20px; }
+  .mi-period-row { grid-template-columns: 1fr; }
+  .mi-stock-grid { grid-template-columns: 1fr; }
 }

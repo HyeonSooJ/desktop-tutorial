@@ -250,13 +250,13 @@
         <p class="section-desc">모의투자와 퀴즈로 금융 지식을 직접 체험해보세요.</p>
       </div>
       <div class="etc-grid">
-        <a href="#mockinvest-tool" class="etc-card">
+        <a href="#mockinvest-tool" class="etc-card" id="openMockinvest">
           <div class="etc-icon">📈</div>
           <h3>모의투자 프로그램</h3>
-          <p>가상 자금 1,000만원으로 실시간처럼 변동하는 시세에 직접 투자해보는 모의투자 프로그램입니다.</p>
+          <p>가상 자금 50만원으로 2020년 상장 종목 중 2개를 골라 기간별 투자 성과를 겨뤄보는 모의투자 프로그램입니다.</p>
           <span class="etc-link">모의투자 바로가기 →</span>
         </a>
-        <a href="#quiz-tool" class="etc-card">
+        <a href="#quiz-tool" class="etc-card" id="openQuiz">
           <div class="etc-icon">🧠</div>
           <h3>주식강의 퀴즈</h3>
           <p>기초 금융·투자 상식을 퀴즈로 풀어보며 실력을 점검해보는 주식강의 퀴즈 프로그램입니다.</p>
@@ -266,53 +266,18 @@
     </div>
   </section>
 
-  <section class="tool-embed" id="mockinvest-tool">
+  <section class="tool-embed" id="mockinvest-tool" hidden>
     <div class="container">
       <div class="section-head">
         <p class="eyebrow">모의투자 프로그램</p>
-        <h2>가상 자금 1,000만원으로 투자를 연습해보세요</h2>
-        <p class="section-desc">실시간처럼 변동하는 가상 시세로 매수·매도를 체험할 수 있는 모의투자 프로그램입니다. 실제 자금이 아닌 가상 자금으로 진행됩니다.</p>
+        <h2>가상 자금 50만원으로 투자를 연습해보세요</h2>
+        <p class="section-desc">2020년에 상장된 국내 종목 중 2개를 선택해, 원하는 기간을 4구간으로 나누어 그때그때의 가격을 보며 매수·매도를 체험하는 모의투자 프로그램입니다. 실제 자금이 아닌 가상 자금이며, 시세는 실제 시장 데이터가 아닙니다.</p>
       </div>
-
-      <div class="portfolio-stats">
-        <div class="stat-card"><strong id="statCash">-</strong><span>보유 현금</span></div>
-        <div class="stat-card"><strong id="statHoldings">-</strong><span>평가 금액</span></div>
-        <div class="stat-card"><strong id="statTotal">-</strong><span>총 자산</span></div>
-        <div class="stat-card"><strong id="statReturn">-</strong><span>총 수익률</span></div>
-      </div>
-
-      <div class="tool-panel">
-        <div class="tool-panel-head">
-          <h3>실시간 시세</h3>
-          <button class="btn btn-outline btn-small" id="resetBtn">초기화</button>
-        </div>
-        <div class="table-scroll">
-          <table class="stock-table">
-            <thead>
-              <tr>
-                <th>종목</th>
-                <th>현재가</th>
-                <th>등락</th>
-                <th>보유수량</th>
-                <th>평가금액</th>
-                <th>매매</th>
-              </tr>
-            </thead>
-            <tbody id="stockTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="tool-panel">
-        <h3>거래 내역</h3>
-        <ul class="tx-log" id="txLog">
-          <li class="tx-empty">아직 거래 내역이 없습니다.</li>
-        </ul>
-      </div>
+      <div class="tool-panel" id="mockinvestApp"></div>
     </div>
   </section>
 
-  <section class="tool-embed tool-embed-alt" id="quiz-tool">
+  <section class="tool-embed tool-embed-alt" id="quiz-tool" hidden>
     <div class="container container-narrow">
       <div class="section-head">
         <p class="eyebrow">주식강의 퀴즈</p>
