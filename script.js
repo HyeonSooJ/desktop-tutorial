@@ -301,6 +301,58 @@ const miCheckpointYears = (startYear, endYear) => {
 
 const formatWon = (n) => `${Math.round(n).toLocaleString('ko-KR')}원`;
 
+const MI_CHART_W = 400;
+const MI_CHART_H = 200;
+const MI_CHART_PAD_X = 24;
+const MI_CHART_PAD_TOP = 34;
+const MI_CHART_PAD_BOTTOM = 26;
+
+const miShortPeriodLabel = (year) => {
+  const label = miFormatPeriodLabel(year);
+  const m = label.match(/(\d+)년 (\d+)월/);
+  if (!m) return label;
+  return `${m[1].slice(2)}.${m[2].padStart(2, '0')}`;
+};
+
+// 지금까지 도달한 시점까지만 그려 미래 가격이 미리 보이지 않도록 한다
+const miPriceChart = (prices, years) => {
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = max - min || Math.max(1, max * 0.1);
+  const innerH = MI_CHART_H - MI_CHART_PAD_TOP - MI_CHART_PAD_BOTTOM;
+  const scaleY = (p) => MI_CHART_PAD_TOP + (1 - (p - min) / range) * innerH;
+  const count = prices.length;
+  const step = count > 1 ? (MI_CHART_W - MI_CHART_PAD_X * 2) / (count - 1) : 0;
+  const points = prices.map((p, i) => [MI_CHART_PAD_X + i * step, scaleY(p)]);
+
+  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+
+  const dots = points.map((p, i) => {
+    const isLast = i === points.length - 1;
+    const up = i > 0 ? prices[i] >= prices[i - 1] : true;
+    const color = isLast ? (up ? 'var(--color-up)' : 'var(--color-down)') : '#c9c9c9';
+    return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${isLast ? 5 : 3.5}" fill="${color}" />`;
+  }).join('');
+
+  const priceLabels = points.map((p, i) => {
+    const labelY = p[1] > MI_CHART_H / 2 ? p[1] - 12 : p[1] + 20;
+    return `<text x="${p[0].toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" class="chart-label">${formatWon(prices[i])}</text>`;
+  }).join('');
+
+  const axisLabels = points.map((p, i) => `<text x="${p[0].toFixed(1)}" y="${MI_CHART_H - 8}" text-anchor="middle" class="chart-label">${miShortPeriodLabel(years[i])}</text>`).join('');
+
+  return `
+    <div class="quiz-chart-wrap">
+      <svg viewBox="0 0 ${MI_CHART_W} ${MI_CHART_H}" class="quiz-chart" role="img" aria-label="시점별 가격 변화 그래프">
+        <path d="${pathD}" fill="none" stroke="var(--color-black)" stroke-width="2.5" />
+        ${dots}
+        ${priceLabels}
+        ${axisLabels}
+      </svg>
+    </div>
+  `;
+};
+
 const mockinvestApp = document.getElementById('mockinvestApp');
 
 let miStarted = false;
@@ -424,10 +476,14 @@ const renderMiRoundStep = () => {
   const total = miCash + holdingsValue;
   const returnPct = ((total - MI_INITIAL_CASH) / MI_INITIAL_CASH) * 100;
   const isLast = miCheckpointIndex === MI_CHECKPOINTS;
+  const pricesSoFar = years.slice(0, miCheckpointIndex + 1).map((y) => miInterpolatePrice(stock, y));
+  const yearsSoFar = years.slice(0, miCheckpointIndex + 1);
 
   mockinvestApp.innerHTML = `
     <h3>라운드 ${miRoundIndex + 1} / ${MI_ROUNDS} · ${stock.name}</h3>
     <p class="mi-help">시점 ${miCheckpointIndex + 1} / ${MI_CHECKPOINTS + 1} · ${miFormatPeriodLabel(year)}</p>
+
+    ${miPriceChart(pricesSoFar, yearsSoFar)}
 
     <div class="portfolio-stats">
       <div class="stat-card"><strong>${formatWon(price)}</strong><span>현재가</span></div>
@@ -490,9 +546,12 @@ const renderMiRoundResult = (stock, finalPrice) => {
   miRoundResults.push({ name: stock.name, finalValue, returnPct });
 
   const isLastRound = miRoundIndex === MI_ROUNDS - 1;
+  const years = miCheckpointYears(miStartYear, miEndYear);
+  const allPrices = years.map((y) => miInterpolatePrice(stock, y));
 
   mockinvestApp.innerHTML = `
     <h3>라운드 ${miRoundIndex + 1} 결과 · ${stock.name}</h3>
+    ${miPriceChart(allPrices, years)}
     <div class="portfolio-stats">
       <div class="stat-card"><strong>${formatWon(finalValue)}</strong><span>최종 자산</span></div>
       <div class="stat-card"><strong style="color:${returnPct > 0 ? 'var(--color-up)' : returnPct < 0 ? 'var(--color-down)' : '#fff'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</strong><span>라운드 수익률</span></div>
