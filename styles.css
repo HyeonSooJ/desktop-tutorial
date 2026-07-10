@@ -959,6 +959,22 @@ h3 { font-size: 1.2rem; }
 
 .footer-links a:hover { color: #fff; }
 
+.footer-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid #2a2a2a;
+  padding-top: 20px;
+  font-size: 0.85rem;
+}
+
+.footer-meta { margin: 0; }
+
+.footer-social { display: flex; gap: 20px; }
+.footer-social a:hover { color: #fff; }
+
 .disclaimer {
   font-size: 0.78rem;
   color: #6b6b6b;
