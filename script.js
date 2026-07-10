@@ -1,5 +1,40 @@
 document.getElementById('year').textContent = new Date().getFullYear();
 
+// --- 히어로 배너 캐러셀 ---
+const heroCarousel = document.getElementById('heroCarousel');
+const heroSlides = document.querySelectorAll('.hero-slide');
+const heroDotsWrap = document.getElementById('heroDots');
+
+if (heroCarousel && heroSlides.length && heroDotsWrap) {
+  let heroIndex = 0;
+  let heroTimer = null;
+
+  heroSlides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'hero-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', `배너 ${i + 1}`);
+    dot.addEventListener('click', () => goToHeroSlide(i));
+    heroDotsWrap.appendChild(dot);
+  });
+
+  function goToHeroSlide(i) {
+    heroSlides[heroIndex].classList.remove('active');
+    heroDotsWrap.children[heroIndex].classList.remove('active');
+    heroIndex = i;
+    heroSlides[heroIndex].classList.add('active');
+    heroDotsWrap.children[heroIndex].classList.add('active');
+  }
+
+  const nextHeroSlide = () => goToHeroSlide((heroIndex + 1) % heroSlides.length);
+  const startHeroTimer = () => { heroTimer = setInterval(nextHeroSlide, 5000); };
+  const stopHeroTimer = () => clearInterval(heroTimer);
+
+  startHeroTimer();
+  heroCarousel.addEventListener('mouseenter', stopHeroTimer);
+  heroCarousel.addEventListener('mouseleave', startHeroTimer);
+}
+
 const menuToggle = document.getElementById('menuToggle');
 const nav = document.getElementById('nav');
 
