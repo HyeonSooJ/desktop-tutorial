@@ -112,6 +112,8 @@ h3 { font-size: 1.2rem; }
 
 .nav a:hover { color: var(--color-black); border-bottom-color: var(--color-black); }
 
+.nav a.active { color: var(--color-black); border-bottom-color: var(--color-black); }
+
 .menu-toggle {
   display: none;
   flex-direction: column;
@@ -607,6 +609,102 @@ h3 { font-size: 1.2rem; }
 .media-detail-link {
   margin-top: 8px;
   align-self: flex-start;
+}
+
+/* Board (성과 게시판) */
+.board {
+  margin-top: 48px;
+}
+
+.board-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.board-head h3 { margin: 0; }
+
+.board-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 2px solid var(--color-black);
+}
+
+.board-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 8px;
+  border-bottom: 1px solid var(--color-border);
+  color: inherit;
+  transition: background 0.15s ease;
+}
+
+.board-row:hover { background: var(--color-bg-alt); }
+
+.board-category {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-black);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.board-title {
+  flex: 1 1 auto;
+  font-weight: 600;
+}
+
+.board-date {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+/* Post detail page */
+.post {
+  padding: 100px 0;
+  background: var(--color-bg);
+}
+
+.post-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.post-inner h1 {
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  margin: 8px 0 16px;
+}
+
+.post-date {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 32px;
+}
+
+.post-body p {
+  margin: 0 0 20px;
+  line-height: 1.8;
+  color: var(--color-text);
+}
+
+.post-not-found {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin-bottom: 24px;
+}
+
+.post-back {
+  margin-top: 24px;
+}
+
+@media (max-width: 560px) {
+  .board-row { flex-wrap: wrap; gap: 8px 16px; }
+  .board-date { width: 100%; order: 3; }
 }
 
 /* Etc */

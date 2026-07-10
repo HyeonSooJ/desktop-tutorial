@@ -27,7 +27,7 @@ if (heroCarousel && heroSlides.length && heroDotsWrap) {
   }
 
   const nextHeroSlide = () => goToHeroSlide((heroIndex + 1) % heroSlides.length);
-  const startHeroTimer = () => { heroTimer = setInterval(nextHeroSlide, 5000); };
+  const startHeroTimer = () => { heroTimer = setInterval(nextHeroSlide, 3000); };
   const stopHeroTimer = () => clearInterval(heroTimer);
 
   startHeroTimer();
@@ -49,17 +49,19 @@ nav.querySelectorAll('a').forEach((link) => {
 const contactForm = document.getElementById('contactForm');
 const formStatus = document.getElementById('formStatus');
 
-contactForm.addEventListener('submit', (event) => {
-  event.preventDefault();
+if (contactForm) {
+  contactForm.addEventListener('submit', (event) => {
+    event.preventDefault();
 
-  if (!contactForm.checkValidity()) {
-    formStatus.textContent = '모든 항목을 올바르게 입력해주세요.';
-    return;
-  }
+    if (!contactForm.checkValidity()) {
+      formStatus.textContent = '모든 항목을 올바르게 입력해주세요.';
+      return;
+    }
 
-  formStatus.textContent = '문의가 정상적으로 접수되었습니다. 곧 연락드리겠습니다!';
-  contactForm.reset();
-});
+    formStatus.textContent = '문의가 정상적으로 접수되었습니다. 곧 연락드리겠습니다!';
+    contactForm.reset();
+  });
+}
 
 const mediaInfo = {
   joongang: { name: '중앙일보', meta: '언론 보도 (2026.04)', logo: 'assets/logo-joongang.jpg' },
@@ -107,23 +109,25 @@ mediaPins.forEach((pin) => {
 const seoulDot = document.getElementById('seoulDot');
 const seoulZoom = document.getElementById('seoulZoom');
 
-const toggleSeoulZoom = () => {
-  const isOpen = seoulZoom.classList.toggle('open');
-  seoulDot.classList.toggle('active', isOpen);
-  seoulDot.setAttribute('aria-expanded', String(isOpen));
-  if (!isOpen) {
-    mediaPins.forEach((pin) => pin.classList.remove('active'));
-    mediaDetail.innerHTML = '<p class="media-detail-placeholder">지도에서 위치를 선택하면 자세한 내용을 확인할 수 있습니다.</p>';
-  }
-};
+if (seoulDot && seoulZoom) {
+  const toggleSeoulZoom = () => {
+    const isOpen = seoulZoom.classList.toggle('open');
+    seoulDot.classList.toggle('active', isOpen);
+    seoulDot.setAttribute('aria-expanded', String(isOpen));
+    if (!isOpen) {
+      mediaPins.forEach((pin) => pin.classList.remove('active'));
+      mediaDetail.innerHTML = '<p class="media-detail-placeholder">지도에서 위치를 선택하면 자세한 내용을 확인할 수 있습니다.</p>';
+    }
+  };
 
-seoulDot.addEventListener('click', toggleSeoulZoom);
-seoulDot.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter' || event.key === ' ') {
-    event.preventDefault();
-    toggleSeoulZoom();
-  }
-});
+  seoulDot.addEventListener('click', toggleSeoulZoom);
+  seoulDot.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      toggleSeoulZoom();
+    }
+  });
+}
 
 // --- 모의투자 프로그램 ---
 
@@ -1087,3 +1091,88 @@ if (openQuizLink && quizSection && mockinvestSection) {
     startQuiz();
   });
 }
+
+// --- 성과 게시판 ---
+
+const BOARD_POSTS = [
+  {
+    id: 'kis-mou',
+    category: '기업협력',
+    date: '2026.05.12',
+    title: '한국투자증권과 기업협력 MOU 체결',
+    summary: '기업협력팀 주도로 한국투자증권과 산학협력 MOU를 체결했습니다.',
+    body: `
+      <p>thehunters는 2026년 5월, 한국투자증권과 산학협력 MOU(업무협약)를 체결했습니다. 이번 협약은 기업협력팀이 지난 한 학기 동안 준비해온 결과물로, 동아리 회원들이 실제 증권업계 실무를 경험할 수 있는 다양한 프로그램을 함께 운영하기 위해 마련되었습니다.</p>
+      <p>협약에 따라 앞으로 한국투자증권 실무진과 함께하는 특강, 모의투자 대회 공동 주최, 우수 회원 대상 인턴십 연계 등 실질적인 협력 프로그램이 순차적으로 진행될 예정입니다.</p>
+      <p>회장은 "동아리 차원에서 준비한 협업 제안서가 실제 업무협약으로 이어진 첫 사례"라며 "앞으로도 회원들이 이론에 그치지 않고 실전 감각을 키울 수 있는 기회를 계속 만들어가겠다"고 소감을 밝혔습니다.</p>
+    `,
+  },
+  {
+    id: 'kis-contest',
+    category: '수상',
+    date: '2026.05.28',
+    title: '한국투자증권 모의투자 대회 수상',
+    summary: '한국투자증권이 주최한 모의투자 대회에서 thehunters 팀이 입상했습니다.',
+    body: `
+      <p>한국투자증권이 주최한 전국 대학생 모의투자 대회에서 thehunters 소속 팀이 입상하는 성과를 거두었습니다. 이번 대회는 실제 시장 데이터를 기반으로 정해진 기간 동안 포트폴리오 수익률을 겨루는 방식으로 진행되었습니다.</p>
+      <p>참가팀은 자산운용팀과 금융AI팀이 함께 구성한 합동 팀으로, 평소 스터디에서 다뤄온 종목 분석 방법론과 리스크 관리 원칙을 실전에 적용해 좋은 결과를 냈습니다.</p>
+      <p>이번 수상은 앞서 체결한 한국투자증권과의 기업협력 MOU와도 이어지는 성과로, thehunters의 실전 투자 교육 프로그램이 대외적으로도 인정받은 사례로 평가받고 있습니다.</p>
+    `,
+  },
+  {
+    id: 'sbs-morning',
+    category: '방송',
+    date: '2026.07.03',
+    title: 'SBS <모닝와이드> 촬영',
+    summary: '회원들이 직접 투자 노하우를 소개하는 콘텐츠로 SBS 아침 방송에 출연했습니다.',
+    body: `
+      <p>thehunters 회원들이 SBS 아침 정보 프로그램 <모닝와이드>에 출연해 대학생들의 실전 투자 스터디 문화를 소개했습니다. 촬영은 정기 스터디 현장과 회원 인터뷰를 중심으로 진행되었습니다.</p>
+      <p>방송에서는 금융AI팀의 데이터 기반 종목 분석 스터디 모습과, 자산운용팀이 진행하는 모의투자 포트폴리오 운용 방식이 소개되었습니다. 회원들은 각자의 투자 관점과 동아리 활동을 통해 얻은 경험을 직접 설명했습니다.</p>
+      <p>이번 방송 출연은 창립 8개월 만에 누적 회원 1,500명을 돌파한 시점과 맞물려, thehunters의 성장세를 대외적으로 알리는 계기가 되었습니다.</p>
+    `,
+  },
+];
+
+const boardListEl = document.getElementById('boardList');
+
+if (boardListEl) {
+  boardListEl.innerHTML = BOARD_POSTS.map((post) => `
+    <a class="board-row" href="post.html?id=${post.id}">
+      <span class="board-category">${post.category}</span>
+      <span class="board-title">${post.title}</span>
+      <span class="board-date">${post.date}</span>
+    </a>
+  `).join('');
+}
+
+const postDetailEl = document.getElementById('postDetail');
+
+if (postDetailEl) {
+  const params = new URLSearchParams(window.location.search);
+  const post = BOARD_POSTS.find((p) => p.id === params.get('id'));
+
+  if (post) {
+    document.title = `${post.title} | thehunters`;
+    postDetailEl.innerHTML = `
+      <p class="eyebrow">${post.category}</p>
+      <h1>${post.title}</h1>
+      <p class="post-date">${post.date}</p>
+      <div class="post-body">${post.body}</div>
+      <a href="achievements.html" class="btn btn-outline post-back">← 목록으로</a>
+    `;
+  } else {
+    postDetailEl.innerHTML = `
+      <p class="post-not-found">게시글을 찾을 수 없습니다.</p>
+      <a href="achievements.html" class="btn btn-outline post-back">← 목록으로</a>
+    `;
+  }
+}
+
+// --- 내비게이션 현재 페이지 표시 ---
+document.querySelectorAll('.nav a').forEach((link) => {
+  const linkPath = link.getAttribute('href').split('#')[0] || 'index.html';
+  const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+  if (linkPath === currentPath) {
+    link.classList.add('active');
+  }
+});
