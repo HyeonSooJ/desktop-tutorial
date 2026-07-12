@@ -2,15 +2,10 @@ document.getElementById('year').textContent = new Date().getFullYear();
 
 // --- 히어로 영상 ---
 const heroVideo = document.getElementById('heroVideo');
-const heroVideoPlaceholder = document.getElementById('heroVideoPlaceholder');
 
-if (heroVideo && heroVideoPlaceholder) {
+if (heroVideo) {
   heroVideo.addEventListener('loadeddata', () => {
     heroVideo.classList.add('loaded');
-    heroVideoPlaceholder.hidden = true;
-  });
-  heroVideo.addEventListener('error', () => {
-    heroVideoPlaceholder.hidden = false;
   });
 }
 

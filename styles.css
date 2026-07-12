@@ -198,7 +198,7 @@ h3 { font-size: 1.2rem; }
 
 .hero-video-wrap {
   position: relative;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 16 / 9;
   border-radius: var(--radius);
   overflow: hidden;
   background: #111;
@@ -215,19 +215,6 @@ h3 { font-size: 1.2rem; }
 }
 
 .hero-video.loaded { opacity: 1; }
-
-.hero-video-placeholder {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 24px;
-  text-align: center;
-  color: #6b6b6b;
-  font-size: 0.9rem;
-}
 
 .hero-carousel {
   position: relative;
@@ -1200,7 +1187,6 @@ h3 { font-size: 1.2rem; }
   }
   .nav.open a { padding: 10px 0; }
   .hero-top { grid-template-columns: 1fr; gap: 32px; }
-  .hero-video-wrap { aspect-ratio: 16 / 9; }
   .org-grid { grid-template-columns: 1fr 1fr; }
   .achievement-stats { grid-template-columns: 1fr 1fr; }
   .form-row { grid-template-columns: 1fr; }
