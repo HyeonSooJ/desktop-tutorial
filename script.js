@@ -27,7 +27,7 @@ if (heroCarousel && heroSlides.length && heroDotsWrap) {
   }
 
   const nextHeroSlide = () => goToHeroSlide((heroIndex + 1) % heroSlides.length);
-  const startHeroTimer = () => { heroTimer = setInterval(nextHeroSlide, 3000); };
+  const startHeroTimer = () => { heroTimer = setInterval(nextHeroSlide, 1000); };
   const stopHeroTimer = () => clearInterval(heroTimer);
 
   startHeroTimer();
