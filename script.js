@@ -1185,7 +1185,9 @@ if (postDetailEl) {
 
 // --- 내비게이션 현재 페이지 표시 ---
 document.querySelectorAll('.nav a').forEach((link) => {
-  const linkPath = link.getAttribute('href').split('#')[0] || 'index.html';
+  const href = link.getAttribute('href');
+  if (href.startsWith('#')) return; // 같은 페이지 내 앵커(기타 등)는 현재 페이지 표시 대상에서 제외
+  const linkPath = href.split('#')[0] || 'index.html';
   const currentPath = window.location.pathname.split('/').pop() || 'index.html';
   if (linkPath === currentPath) {
     link.classList.add('active');
