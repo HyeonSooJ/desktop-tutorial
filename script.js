@@ -1,5 +1,19 @@
 document.getElementById('year').textContent = new Date().getFullYear();
 
+// --- 히어로 영상 ---
+const heroVideo = document.getElementById('heroVideo');
+const heroVideoPlaceholder = document.getElementById('heroVideoPlaceholder');
+
+if (heroVideo && heroVideoPlaceholder) {
+  heroVideo.addEventListener('loadeddata', () => {
+    heroVideo.classList.add('loaded');
+    heroVideoPlaceholder.hidden = true;
+  });
+  heroVideo.addEventListener('error', () => {
+    heroVideoPlaceholder.hidden = false;
+  });
+}
+
 // --- 히어로 배너 캐러셀 ---
 const heroCarousel = document.getElementById('heroCarousel');
 const heroSlides = document.querySelectorAll('.hero-slide');

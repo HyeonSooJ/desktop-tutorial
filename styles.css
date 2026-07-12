@@ -186,7 +186,48 @@ h3 { font-size: 1.2rem; }
 
 .hero h1 { color: #fff; }
 
-.hero-inner { text-align: center; max-width: 760px; margin: 0 auto; }
+.hero-inner { max-width: 1100px; margin: 0 auto; }
+
+.hero-top {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 48px;
+  align-items: center;
+  text-align: left;
+}
+
+.hero-video-wrap {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #111;
+  border: 1px solid #2a2a2a;
+}
+
+.hero-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.hero-video.loaded { opacity: 1; }
+
+.hero-video-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  color: #6b6b6b;
+  font-size: 0.9rem;
+}
 
 .hero-carousel {
   position: relative;
@@ -198,11 +239,11 @@ h3 { font-size: 1.2rem; }
   inset: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.6s ease;
+  transition: opacity 0.3s ease;
 }
 
 .hero-slide.active {
@@ -212,9 +253,9 @@ h3 { font-size: 1.2rem; }
 
 .hero-dots {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
-  margin: 8px 0 40px;
+  margin: 8px 0 0;
 }
 
 .hero-dot {
@@ -233,16 +274,15 @@ h3 { font-size: 1.2rem; }
 .hero-desc {
   color: #b3b3b3;
   font-size: 1.08rem;
-  margin: 0 auto 36px;
-  max-width: 620px;
+  margin: 0 0 28px;
+  max-width: 520px;
 }
 
 .hero-actions {
   display: flex;
   gap: 16px;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
-  margin-bottom: 60px;
 }
 
 .hero .btn-primary {
@@ -268,6 +308,7 @@ h3 { font-size: 1.2rem; }
   gap: 56px;
   flex-wrap: wrap;
   border-top: 1px solid #2a2a2a;
+  margin-top: 56px;
   padding-top: 40px;
 }
 
@@ -1158,6 +1199,8 @@ h3 { font-size: 1.2rem; }
     border-bottom: 2px solid var(--color-black);
   }
   .nav.open a { padding: 10px 0; }
+  .hero-top { grid-template-columns: 1fr; gap: 32px; }
+  .hero-video-wrap { aspect-ratio: 16 / 9; }
   .org-grid { grid-template-columns: 1fr 1fr; }
   .achievement-stats { grid-template-columns: 1fr 1fr; }
   .form-row { grid-template-columns: 1fr; }
