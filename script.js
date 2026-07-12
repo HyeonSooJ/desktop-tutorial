@@ -7,6 +7,12 @@ if (heroVideo) {
   heroVideo.addEventListener('loadeddata', () => {
     heroVideo.classList.add('loaded');
   });
+  heroVideo.muted = true;
+  const tryPlay = () => heroVideo.play().catch(() => {});
+  tryPlay();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) tryPlay();
+  });
 }
 
 // --- 히어로 배너 캐러셀 ---
@@ -36,7 +42,7 @@ if (heroCarousel && heroSlides.length && heroDotsWrap) {
   }
 
   const nextHeroSlide = () => goToHeroSlide((heroIndex + 1) % heroSlides.length);
-  const startHeroTimer = () => { heroTimer = setInterval(nextHeroSlide, 2500); };
+  const startHeroTimer = () => { heroTimer = setInterval(nextHeroSlide, 4000); };
   const stopHeroTimer = () => clearInterval(heroTimer);
 
   startHeroTimer();
