@@ -283,14 +283,33 @@ const MI_STOCK_POOL = [
 
 // 종목별 실제 일별 시가/고가/저가/종가(OHLC) 데이터를 지연 로딩하고 캐시한다
 // (FinanceData/marcap KRX 데이터셋 기준, 2020-01-02 ~ 2026-07-03)
+// <script> 태그로 불러온다: fetch()는 file:// 로 열었을 때 CORS로 막히지만 <script src>는 로컬 파일에서도 동작한다.
+window.MI_OHLC_DATA = window.MI_OHLC_DATA || {};
 const miOhlcCache = {};
+const miOhlcLoading = {};
 
-const miFetchOhlc = async (code) => {
-  if (miOhlcCache[code]) return miOhlcCache[code];
-  const res = await fetch(`data/ohlc/${code}.json`);
-  const data = await res.json();
-  miOhlcCache[code] = data;
-  return data;
+const miFetchOhlc = (code) => {
+  if (miOhlcCache[code]) return Promise.resolve(miOhlcCache[code]);
+  if (miOhlcLoading[code]) return miOhlcLoading[code];
+
+  miOhlcLoading[code] = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `data/ohlc/${code}.js`;
+    script.onload = () => {
+      const data = window.MI_OHLC_DATA[code];
+      miOhlcCache[code] = data;
+      delete miOhlcLoading[code];
+      resolve(data);
+    };
+    script.onerror = () => {
+      delete miOhlcLoading[code];
+      script.remove();
+      reject(new Error(`${code} 시세 데이터를 불러오지 못했습니다.`));
+    };
+    document.head.appendChild(script);
+  });
+
+  return miOhlcLoading[code];
 };
 
 const miFractionalYearToDate = (year) => {
@@ -464,6 +483,7 @@ const renderMiStockGrid = (filter) => {
       } else if (miSelectedKeys.length < 2) {
         miSelectedKeys.push(key);
         btn.classList.add('selected');
+        miFetchOhlc(key).catch(() => {});
       }
     });
   });
@@ -505,8 +525,16 @@ const beginMiRound = async () => {
   miHoldings = 0;
   const stock = MI_STOCK_POOL.find((s) => s.key === miSelectedKeys[miRoundIndex]);
   mockinvestApp.innerHTML = `<p class="mi-help">${stock.name} 실제 시세 데이터를 불러오는 중...</p>`;
-  miCurrentOhlc = await miFetchOhlc(stock.key);
-  renderMiRoundStep();
+  try {
+    miCurrentOhlc = await miFetchOhlc(stock.key);
+    renderMiRoundStep();
+  } catch (err) {
+    mockinvestApp.innerHTML = `
+      <p class="mi-error">${stock.name} 시세 데이터를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.</p>
+      <button class="btn btn-primary mi-next-btn" id="miRetryLoad">다시 시도 →</button>
+    `;
+    document.getElementById('miRetryLoad').addEventListener('click', beginMiRound);
+  }
 };
 
 const renderMiRoundStep = () => {
