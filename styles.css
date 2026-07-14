@@ -243,27 +243,8 @@ h3 { font-size: 1.2rem; }
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 8px 0 0;
+  margin: 32px 0 0;
 }
-
-.hero-dots {
-  display: flex;
-  justify-content: flex-start;
-  gap: 10px;
-}
-
-.hero-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #4a4a4a;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.2s ease, width 0.2s ease, border-radius 0.2s ease;
-}
-
-.hero-dot.active { background: #fff; width: 22px; border-radius: 4px; }
 
 .hero-nav-btn {
   display: inline-flex;

@@ -18,7 +18,6 @@ if (heroVideo) {
 // --- 히어로 배너 캐러셀 ---
 const heroCarousel = document.getElementById('heroCarousel');
 const heroSlides = document.querySelectorAll('.hero-slide');
-const heroDotsWrap = document.getElementById('heroDots');
 const heroPrevBtn = document.getElementById('heroPrevBtn');
 const heroNextBtn = document.getElementById('heroNextBtn');
 const heroPlayBtn = document.getElementById('heroPlayBtn');
@@ -27,26 +26,15 @@ const heroPlayIcon = document.getElementById('heroPlayIcon');
 const HERO_PAUSE_ICON = '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>';
 const HERO_PLAY_ICON = '<polygon points="7,4 19,12 7,20"/>';
 
-if (heroCarousel && heroSlides.length && heroDotsWrap) {
+if (heroCarousel && heroSlides.length) {
   let heroIndex = 0;
   let heroTimer = null;
   let heroPlaying = true;
 
-  heroSlides.forEach((_, i) => {
-    const dot = document.createElement('button');
-    dot.type = 'button';
-    dot.className = 'hero-dot' + (i === 0 ? ' active' : '');
-    dot.setAttribute('aria-label', `배너 ${i + 1}`);
-    dot.addEventListener('click', () => { goToHeroSlide(i); restartHeroTimer(); });
-    heroDotsWrap.appendChild(dot);
-  });
-
   function goToHeroSlide(i) {
     heroSlides[heroIndex].classList.remove('active');
-    heroDotsWrap.children[heroIndex].classList.remove('active');
     heroIndex = i;
     heroSlides[heroIndex].classList.add('active');
-    heroDotsWrap.children[heroIndex].classList.add('active');
   }
 
   const nextHeroSlide = () => goToHeroSlide((heroIndex + 1) % heroSlides.length);
