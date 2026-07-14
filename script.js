@@ -19,17 +19,25 @@ if (heroVideo) {
 const heroCarousel = document.getElementById('heroCarousel');
 const heroSlides = document.querySelectorAll('.hero-slide');
 const heroDotsWrap = document.getElementById('heroDots');
+const heroPrevBtn = document.getElementById('heroPrevBtn');
+const heroNextBtn = document.getElementById('heroNextBtn');
+const heroPlayBtn = document.getElementById('heroPlayBtn');
+const heroPlayIcon = document.getElementById('heroPlayIcon');
+
+const HERO_PAUSE_ICON = '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>';
+const HERO_PLAY_ICON = '<polygon points="7,4 19,12 7,20"/>';
 
 if (heroCarousel && heroSlides.length && heroDotsWrap) {
   let heroIndex = 0;
   let heroTimer = null;
+  let heroPlaying = true;
 
   heroSlides.forEach((_, i) => {
     const dot = document.createElement('button');
     dot.type = 'button';
     dot.className = 'hero-dot' + (i === 0 ? ' active' : '');
     dot.setAttribute('aria-label', `배너 ${i + 1}`);
-    dot.addEventListener('click', () => goToHeroSlide(i));
+    dot.addEventListener('click', () => { goToHeroSlide(i); restartHeroTimer(); });
     heroDotsWrap.appendChild(dot);
   });
 
@@ -42,12 +50,32 @@ if (heroCarousel && heroSlides.length && heroDotsWrap) {
   }
 
   const nextHeroSlide = () => goToHeroSlide((heroIndex + 1) % heroSlides.length);
-  const startHeroTimer = () => { heroTimer = setInterval(nextHeroSlide, 3000); };
+  const prevHeroSlide = () => goToHeroSlide((heroIndex - 1 + heroSlides.length) % heroSlides.length);
+  const startHeroTimer = () => { clearInterval(heroTimer); heroTimer = setInterval(nextHeroSlide, 3000); };
   const stopHeroTimer = () => clearInterval(heroTimer);
+  // 일시정지 상태가 아닐 때만 타이머를 다시 건다 — 수동으로 이전/다음을 눌러도
+  // 3초 카운트가 처음부터 다시 시작되도록.
+  const restartHeroTimer = () => { if (heroPlaying) startHeroTimer(); };
 
   startHeroTimer();
-  heroCarousel.addEventListener('mouseenter', stopHeroTimer);
-  heroCarousel.addEventListener('mouseleave', startHeroTimer);
+
+  if (heroPrevBtn) heroPrevBtn.addEventListener('click', () => { prevHeroSlide(); restartHeroTimer(); });
+  if (heroNextBtn) heroNextBtn.addEventListener('click', () => { nextHeroSlide(); restartHeroTimer(); });
+
+  if (heroPlayBtn && heroPlayIcon) {
+    heroPlayBtn.addEventListener('click', () => {
+      heroPlaying = !heroPlaying;
+      if (heroPlaying) {
+        startHeroTimer();
+        heroPlayBtn.setAttribute('aria-label', '일시정지');
+        heroPlayIcon.innerHTML = HERO_PAUSE_ICON;
+      } else {
+        stopHeroTimer();
+        heroPlayBtn.setAttribute('aria-label', '재생');
+        heroPlayIcon.innerHTML = HERO_PLAY_ICON;
+      }
+    });
+  }
 }
 
 const menuToggle = document.getElementById('menuToggle');

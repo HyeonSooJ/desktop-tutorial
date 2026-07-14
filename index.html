@@ -66,7 +66,18 @@
           </div>
         </div>
       </div>
-      <div class="hero-dots" id="heroDots"></div>
+      <div class="hero-controls">
+        <button type="button" class="hero-nav-btn" id="heroPrevBtn" aria-label="이전 소식">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="hero-dots" id="heroDots"></div>
+        <button type="button" class="hero-nav-btn hero-play-btn" id="heroPlayBtn" aria-label="일시정지">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" id="heroPlayIcon"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+        </button>
+        <button type="button" class="hero-nav-btn" id="heroNextBtn" aria-label="다음 소식">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
       </div>
       <div class="hero-video-wrap">
         <video class="hero-video" id="heroVideo" src="assets/hero-video.mp4" autoplay muted loop playsinline webkit-playsinline disablepictureinpicture disableremoteplayback preload="auto"></video>

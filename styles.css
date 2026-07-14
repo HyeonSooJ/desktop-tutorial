@@ -239,11 +239,17 @@ h3 { font-size: 1.2rem; }
   pointer-events: auto;
 }
 
+.hero-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 8px 0 0;
+}
+
 .hero-dots {
   display: flex;
   justify-content: flex-start;
   gap: 10px;
-  margin: 8px 0 0;
 }
 
 .hero-dot {
@@ -258,6 +264,23 @@ h3 { font-size: 1.2rem; }
 }
 
 .hero-dot.active { background: #fff; width: 22px; border-radius: 4px; }
+
+.hero-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid #2a2a2a;
+  background: transparent;
+  color: #9a9a9a;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.hero-nav-btn:hover { color: #fff; border-color: #565656; }
 
 .hero-desc {
   color: #b3b3b3;
