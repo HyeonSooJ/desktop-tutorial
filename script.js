@@ -689,6 +689,7 @@ const renderMiRoundStep = () => {
     ${isLast ? '' : `
     <div class="trade-controls mi-trade-controls">
       <input type="number" min="1" step="1" value="1" class="qty-input" id="miQty">
+      <button class="btn btn-outline btn-small" id="miMaxQtyBtn" type="button">가능</button>
       <button class="btn btn-primary btn-small" id="miBuyBtn">매수</button>
       <button class="btn btn-outline btn-small" id="miSellBtn">매도</button>
     </div>
@@ -701,6 +702,17 @@ const renderMiRoundStep = () => {
   if (!isLast) {
     const qtyInput = document.getElementById('miQty');
     const errorEl = document.getElementById('miTradeError');
+
+    document.getElementById('miMaxQtyBtn').addEventListener('click', () => {
+      const maxQty = Math.floor(miCash / price);
+      if (maxQty < 1) {
+        errorEl.textContent = '보유 현금으로 매수 가능한 수량이 없습니다.';
+        errorEl.hidden = false;
+        return;
+      }
+      errorEl.hidden = true;
+      qtyInput.value = maxQty;
+    });
 
     document.getElementById('miBuyBtn').addEventListener('click', () => {
       const qty = Math.max(1, Math.floor(Number(qtyInput.value) || 0));
