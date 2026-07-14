@@ -349,7 +349,6 @@ const MI_CANDLE_W = 400;
 const MI_CANDLE_H = 220;
 const MI_CANDLE_PAD_TOP = 16;
 const MI_CANDLE_PAD_BOTTOM = 26;
-const MI_CANDLE_PAD_LEFT = 8;
 const MI_CANDLE_PAD_RIGHT = 8;
 const MI_Y_TICKS = 4;
 
@@ -415,31 +414,80 @@ const miAggregateBars = (ohlc, fromIdx, toIdx, maxBars) => {
 };
 
 const MI_MIN_BAR_PX = 4;
+// 하루 꼬리(고가-저가)가 아무리 길어도 차트 세로 길이의 이 비율 이상을 차지하지 않도록 한다.
+const MI_MAX_WICK_RATIO = 0.25;
+
+// 라운드 전체(1분기 진입 전 구간 ~ 최종 정산 시점)의 실제 일별 데이터를 기준으로
+// Y축 최고/최저값을 한 번만 계산한다. 특정 봉의 꼬리가 유난히 길어 나머지 구간을
+// 짓눌러버리지 않도록, 필요하면 축 범위를 넓혀 그 꼬리가 세로 길이의 1/4을 넘지 않게 만든다.
+// 여러 거래일을 하나로 묶는 집계(miAggregateBars) 때문에, 하루짜리 꼬리는 안 길어도 묶인 봉의
+// 꼬리는 훨씬 길어질 수 있다(예: 급등/급락 구간이 통째로 한 봉에 묶이는 경우) — 그래서 실제
+// 렌더링 시 가장 압축되는 시점(체크포인트 5개가 다 채워졌을 때)과 동일한 조건으로 미리 집계해서
+// 확인해야 한다.
+const miComputeRoundYRange = (ohlc, fullSegments) => {
+  const overallFrom = fullSegments[0].from;
+  const overallTo = fullSegments[fullSegments.length - 1].to;
+
+  let dataMin = Infinity;
+  let dataMax = -Infinity;
+  for (let i = overallFrom; i <= overallTo; i += 1) {
+    dataMin = Math.min(dataMin, ohlc.l[i]);
+    dataMax = Math.max(dataMax, ohlc.h[i]);
+  }
+
+  const estimatedPlotW = MI_CANDLE_W - 60 - MI_CANDLE_PAD_RIGHT;
+  const estimatedSegW = estimatedPlotW / fullSegments.length;
+  const estimatedMaxBars = Math.max(1, Math.floor(estimatedSegW / MI_MIN_BAR_PX));
+
+  let maxWick = 0;
+  fullSegments.forEach((seg) => {
+    miAggregateBars(ohlc, seg.from, seg.to, estimatedMaxBars).forEach((bar) => {
+      maxWick = Math.max(maxWick, bar.h - bar.l);
+    });
+  });
+
+  let min = dataMin;
+  let max = dataMax;
+  let range = (max - min) || Math.max(1, max * 0.05);
+  const requiredRange = maxWick / MI_MAX_WICK_RATIO;
+  if (requiredRange > range) {
+    const extra = requiredRange - range;
+    min -= extra / 2;
+    max += extra / 2;
+    // 주가는 음수가 될 수 없으므로, 아래로 넓히다 0 밑으로 내려가면 그만큼을 위쪽으로 몰아준다.
+    if (min < 0) {
+      max += -min;
+      min = 0;
+    }
+    range = max - min;
+  }
+  return { min, max, range };
+};
 
 // 여러 분기 세그먼트를 이어 붙여 실제 일별 캔들(양봉/음봉) 차트를 그린다.
-// 세그먼트가 늘어날수록 각 세그먼트 폭은 1/N로 줄어들고, 가격(Y축)은 전체 구간 공통 스케일을 쓴다.
-// 가장 마지막 캔들(현재 체크포인트 당일)을 강조 표시한다.
-const miCandleChart = (ohlc, segments) => {
+// 세그먼트가 늘어날수록 각 세그먼트 폭은 1/N로 줄어들고, 가격(Y축)은 라운드 시작 시 한 번
+// 정해 둔 공통 스케일(yRange)을 그대로 쓴다 — 체크포인트를 넘어가도 축이 흔들리지 않도록.
+const miCandleChart = (ohlc, segments, yRange) => {
   const overallFrom = segments[0].from;
   const overallTo = segments[segments.length - 1].to;
 
-  const overallIdxs = [];
-  for (let i = overallFrom; i <= overallTo; i += 1) overallIdxs.push(i);
-  const highs = overallIdxs.map((i) => ohlc.h[i]);
-  const lows = overallIdxs.map((i) => ohlc.l[i]);
-  const min = Math.min(...lows);
-  const max = Math.max(...highs);
-  const range = (max - min) || Math.max(1, max * 0.05);
+  const { min, range } = yRange;
   const innerH = MI_CANDLE_H - MI_CANDLE_PAD_TOP - MI_CANDLE_PAD_BOTTOM;
   const scaleY = (p) => MI_CANDLE_PAD_TOP + (1 - (p - min) / range) * innerH;
 
-  const plotW = MI_CANDLE_W - MI_CANDLE_PAD_LEFT - MI_CANDLE_PAD_RIGHT;
+  // 가격이 몇 자리든(수만 원대 ~ 수백만 원대 종목) Y축 자릿수가 잘리지 않도록,
+  // 실제 표시될 눈금 라벨 중 가장 긴 문자열 폭에 맞춰 왼쪽 여백을 동적으로 잡는다.
+  const tickPrices = Array.from({ length: MI_Y_TICKS + 1 }, (_, t) => min + (range * t) / MI_Y_TICKS);
+  const maxTickLen = Math.max(...tickPrices.map((p) => Math.round(p).toLocaleString('ko-KR').length));
+  const padLeft = 12 + maxTickLen * 7.5;
+
+  const plotW = MI_CANDLE_W - padLeft - MI_CANDLE_PAD_RIGHT;
   const segW = plotW / segments.length;
 
   let candlesSvg = '';
 
   segments.forEach((seg, segIdx) => {
-    const segX0 = MI_CANDLE_PAD_LEFT + segIdx * segW;
+    const segX0 = padLeft + segIdx * segW;
     const isLastSegment = segIdx === segments.length - 1;
     const highlightIdx = seg.entryIdx ?? seg.to;
 
@@ -470,15 +518,16 @@ const miCandleChart = (ohlc, segments) => {
   for (let t = 0; t <= MI_Y_TICKS; t += 1) {
     const p = min + (range * t) / MI_Y_TICKS;
     const y = scaleY(p);
-    gridSvg += `<line x1="${MI_CANDLE_PAD_LEFT}" y1="${y.toFixed(1)}" x2="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y2="${y.toFixed(1)}" stroke="var(--color-border)" stroke-width="1" />`;
+    gridSvg += `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y2="${y.toFixed(1)}" stroke="var(--color-border)" stroke-width="1" />`
+      + `<text x="${padLeft - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-label">${Math.round(p).toLocaleString('ko-KR')}</text>`;
   }
 
   return `
     <div class="quiz-chart-wrap">
-      <svg viewBox="0 0 ${MI_CANDLE_W} ${MI_CANDLE_H}" class="quiz-chart" role="img" aria-label="일별 캔들 차트 (양봉/음봉)">
+      <svg viewBox="0 0 ${MI_CANDLE_W} ${MI_CANDLE_H}" class="quiz-chart" role="img" aria-label="일별 캔들 차트 (양봉/음봉), 세로축 가격">
         ${gridSvg}
         ${candlesSvg}
-        <text x="${MI_CANDLE_PAD_LEFT}" y="${MI_CANDLE_H - 8}" class="chart-label">${ohlc.d[overallFrom]}</text>
+        <text x="${padLeft}" y="${MI_CANDLE_H - 8}" class="chart-label">${ohlc.d[overallFrom]}</text>
         <text x="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y="${MI_CANDLE_H - 8}" text-anchor="end" class="chart-label">${ohlc.d[overallTo]}</text>
       </svg>
     </div>
@@ -498,6 +547,7 @@ let miHoldings = 0;
 let miRoundResults = [];
 let miCurrentOhlc = null;
 let miRoundStartCash = MI_INITIAL_CASH;
+let miRoundYRange = null;
 
 const renderMiPeriodStep = () => {
   const yearOptions = (selected) => {
@@ -603,6 +653,11 @@ const beginMiRound = async () => {
   mockinvestApp.innerHTML = `<p class="mi-help">${stock.name} 실제 시세 데이터를 불러오는 중...</p>`;
   try {
     miCurrentOhlc = await miFetchOhlc(stock.key);
+    // 라운드 시작 시 Y축 범위를 한 번만 정해두고, 이 라운드가 끝날 때까지 그대로 재사용한다
+    // (체크포인트를 넘어갈 때마다 축이 다시 계산되면서 흔들리지 않도록).
+    const years = miCheckpointYears(miStartYear, miEndYear);
+    const fullSegments = miBuildSegments(miCurrentOhlc, years, MI_CHECKPOINTS);
+    miRoundYRange = miComputeRoundYRange(miCurrentOhlc, fullSegments);
     renderMiRoundStep();
   } catch (err) {
     mockinvestApp.innerHTML = `
@@ -637,7 +692,7 @@ const renderMiRoundStep = () => {
     <h3>라운드 ${miRoundIndex + 1} / ${MI_ROUNDS} · ${stock.name}</h3>
     <p class="mi-help">${periodLabel} · ${miFormatPeriodLabel(year)} (실제 거래일 ${miCurrentOhlc.d[idx]})${isLast ? ' — 이 시점은 매수/매도 없이 보유 주식이 이 가격에 자동 매도됩니다.' : ''}</p>
 
-    ${miCandleChart(miCurrentOhlc, segments)}
+    ${miCandleChart(miCurrentOhlc, segments, miRoundYRange)}
 
     <div class="portfolio-stats">
       <div class="stat-card"><strong>${formatWon(price)}</strong><span>${isLast ? '정산가' : '현재가'}</span></div>
@@ -709,7 +764,7 @@ const renderMiRoundResult = (stock) => {
 
   mockinvestApp.innerHTML = `
     <h3>라운드 ${miRoundIndex + 1} 결과 · ${stock.name}</h3>
-    ${miCandleChart(miCurrentOhlc, segments)}
+    ${miCandleChart(miCurrentOhlc, segments, miRoundYRange)}
     <div class="portfolio-stats">
       <div class="stat-card"><strong>${formatWon(finalValue)}</strong><span>최종 자산</span></div>
       <div class="stat-card"><strong style="color:${returnPct > 0 ? 'var(--color-up)' : returnPct < 0 ? 'var(--color-down)' : '#fff'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</strong><span>라운드 수익률</span></div>
