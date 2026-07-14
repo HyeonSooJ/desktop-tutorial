@@ -415,7 +415,7 @@ const miAggregateBars = (ohlc, fromIdx, toIdx, maxBars) => {
 
 const MI_MIN_BAR_PX = 4;
 // Y축은 항상 0원부터 시작해서, 지금 화면에 보이는 구간의 최고가보다 이만큼 위까지만 잡는다.
-const MI_AXIS_HEADROOM = 50000;
+const MI_AXIS_HEADROOM = 30000;
 
 // 지금 화면에 보이는 구간(segments)만 기준으로 Y축 범위를 계산한다 — 분기가 넘어갈 때마다
 // 그 시점까지 실제로 드러난 최고가에 맞춰 축이 다시 잡힌다(아직 오지 않은 분기의 가격을
