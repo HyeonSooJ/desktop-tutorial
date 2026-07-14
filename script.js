@@ -349,61 +349,115 @@ const MI_CANDLE_W = 400;
 const MI_CANDLE_H = 220;
 const MI_CANDLE_PAD_TOP = 16;
 const MI_CANDLE_PAD_BOTTOM = 26;
-const MI_CANDLE_PAD_X = 8;
+const MI_CANDLE_PAD_LEFT = 48;
+const MI_CANDLE_PAD_RIGHT = 8;
+const MI_SEGMENT_GAP = 4;
+const MI_Y_TICKS = 4;
 
-// 체크포인트 시점까지의 실제 일별 캔들(양봉/음봉)을 그린다. toIdx(체크포인트 당일)를 강조 표시.
-const miCandleChart = (ohlc, fromIdx, toIdx) => {
-  const idxs = [];
-  for (let i = fromIdx; i <= toIdx; i += 1) idxs.push(i);
+// 체크포인트 index(0..uptoCheckpointIndex)를 분기 구간별 세그먼트로 나눈다.
+// 세그먼트[0]은 1분기 진입 이전의 실제 추이(직전 한 분기 길이)를 보여주기 위한 구간이고,
+// 이후 세그먼트[k]는 (k-1)번째 체크포인트 ~ k번째 체크포인트 구간이다.
+// 각 세그먼트는 차트 폭을 동일하게 나눠 쓰므로, 분기가 늘어날수록 이전 구간들은 상대적으로 압축되어 보인다.
+const miBuildSegments = (ohlc, years, uptoCheckpointIndex) => {
+  const allIdxs = years.map((y) => miFindCheckpointIndex(ohlc, miFractionalYearToDate(y)));
+  const idxs = allIdxs.slice(0, uptoCheckpointIndex + 1);
+  const quarterLen = Math.max(1, allIdxs[1] - allIdxs[0]);
+  const lookbackStart = Math.max(0, idxs[0] - quarterLen);
 
-  const highs = idxs.map((i) => ohlc.h[i]);
-  const lows = idxs.map((i) => ohlc.l[i]);
+  const segments = [{ from: lookbackStart, to: idxs[0] }];
+  for (let i = 1; i < idxs.length; i += 1) {
+    segments.push({ from: idxs[i - 1], to: idxs[i] });
+  }
+  return segments;
+};
+
+// 여러 분기 세그먼트를 이어 붙여 실제 일별 캔들(양봉/음봉) 차트를 그린다.
+// 세그먼트가 늘어날수록 각 세그먼트 폭은 1/N로 줄어들고, 가격(Y축)은 전체 구간 공통 스케일을 쓴다.
+// 가장 마지막 캔들(현재 체크포인트 당일)을 강조 표시한다.
+const miCandleChart = (ohlc, segments) => {
+  const overallFrom = segments[0].from;
+  const overallTo = segments[segments.length - 1].to;
+
+  const overallIdxs = [];
+  for (let i = overallFrom; i <= overallTo; i += 1) overallIdxs.push(i);
+  const highs = overallIdxs.map((i) => ohlc.h[i]);
+  const lows = overallIdxs.map((i) => ohlc.l[i]);
   const min = Math.min(...lows);
   const max = Math.max(...highs);
   const range = (max - min) || Math.max(1, max * 0.05);
   const innerH = MI_CANDLE_H - MI_CANDLE_PAD_TOP - MI_CANDLE_PAD_BOTTOM;
   const scaleY = (p) => MI_CANDLE_PAD_TOP + (1 - (p - min) / range) * innerH;
 
-  const count = idxs.length;
-  const slotW = (MI_CANDLE_W - MI_CANDLE_PAD_X * 2) / count;
-  const bodyW = Math.max(2, slotW * 0.6);
+  const plotW = MI_CANDLE_W - MI_CANDLE_PAD_LEFT - MI_CANDLE_PAD_RIGHT;
+  const gapTotal = MI_SEGMENT_GAP * (segments.length - 1);
+  const segW = (plotW - gapTotal) / segments.length;
 
   let lastLabelSvg = '';
+  let candlesSvg = '';
+  let dividersSvg = '';
 
-  const candles = idxs.map((i, pos) => {
-    const o = ohlc.o[i];
-    const h = ohlc.h[i];
-    const l = ohlc.l[i];
-    const c = ohlc.c[i];
-    const isUp = c >= o;
-    const color = isUp ? 'var(--color-up)' : 'var(--color-down)';
-    const cx = MI_CANDLE_PAD_X + slotW * pos + slotW / 2;
-    const yOpen = scaleY(o);
-    const yClose = scaleY(c);
-    const yHigh = scaleY(h);
-    const yLow = scaleY(l);
-    const bodyTop = Math.min(yOpen, yClose);
-    const bodyH = Math.max(1, Math.abs(yClose - yOpen));
-    const isLast = i === toIdx;
-    const strokeAttr = isLast ? ' stroke="var(--color-black)" stroke-width="1"' : '';
-    if (isLast) {
-      const topLimit = MI_CANDLE_PAD_TOP + 10;
-      const bottomLimit = MI_CANDLE_H - MI_CANDLE_PAD_BOTTOM - 6;
-      let labelY = yHigh - 8;
-      if (labelY < topLimit) labelY = Math.min(yLow + 18, bottomLimit);
-      lastLabelSvg = `<text x="${MI_CANDLE_W - MI_CANDLE_PAD_X}" y="${labelY.toFixed(1)}" text-anchor="end" class="chart-label chart-callout">${formatWon(c)}</text>`;
+  segments.forEach((seg, segIdx) => {
+    const idxs = [];
+    for (let i = seg.from; i <= seg.to; i += 1) idxs.push(i);
+    const count = Math.max(1, idxs.length);
+    const slotW = segW / count;
+    const bodyW = Math.max(1.5, slotW * 0.6);
+    const segX0 = MI_CANDLE_PAD_LEFT + segIdx * (segW + MI_SEGMENT_GAP);
+    const isLastSegment = segIdx === segments.length - 1;
+
+    idxs.forEach((i, pos) => {
+      const o = ohlc.o[i];
+      const h = ohlc.h[i];
+      const l = ohlc.l[i];
+      const c = ohlc.c[i];
+      const isUp = c >= o;
+      const color = isUp ? 'var(--color-up)' : 'var(--color-down)';
+      const cx = segX0 + slotW * pos + slotW / 2;
+      const yOpen = scaleY(o);
+      const yClose = scaleY(c);
+      const yHigh = scaleY(h);
+      const yLow = scaleY(l);
+      const bodyTop = Math.min(yOpen, yClose);
+      const bodyH = Math.max(1, Math.abs(yClose - yOpen));
+      const isLast = isLastSegment && i === seg.to;
+      const strokeAttr = isLast ? ' stroke="var(--color-black)" stroke-width="1"' : '';
+      if (isLast) {
+        const topLimit = MI_CANDLE_PAD_TOP + 10;
+        const bottomLimit = MI_CANDLE_H - MI_CANDLE_PAD_BOTTOM - 6;
+        let labelY = yHigh - 8;
+        if (labelY < topLimit) labelY = Math.min(yLow + 18, bottomLimit);
+        const labelText = formatWon(c);
+        const labelBoxW = labelText.length * 7.5 + 6;
+        lastLabelSvg = `<rect x="${(MI_CANDLE_W - MI_CANDLE_PAD_RIGHT - labelBoxW).toFixed(1)}" y="${(labelY - 12).toFixed(1)}" width="${labelBoxW.toFixed(1)}" height="16" fill="#fff" opacity="0.85" />`
+          + `<text x="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y="${labelY.toFixed(1)}" text-anchor="end" class="chart-label chart-callout">${labelText}</text>`;
+      }
+      candlesSvg += `<line x1="${cx.toFixed(1)}" y1="${yHigh.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yLow.toFixed(1)}" stroke="${color}" stroke-width="1" />`
+        + `<rect x="${(cx - bodyW / 2).toFixed(1)}" y="${bodyTop.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${color}"${strokeAttr} />`;
+    });
+
+    if (segIdx > 0) {
+      const dividerX = (segX0 - MI_SEGMENT_GAP / 2).toFixed(1);
+      dividersSvg += `<line x1="${dividerX}" y1="${MI_CANDLE_PAD_TOP}" x2="${dividerX}" y2="${MI_CANDLE_H - MI_CANDLE_PAD_BOTTOM}" stroke="var(--color-border)" stroke-width="1" stroke-dasharray="3 3" />`;
     }
-    return `<line x1="${cx.toFixed(1)}" y1="${yHigh.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yLow.toFixed(1)}" stroke="${color}" stroke-width="1" />`
-      + `<rect x="${(cx - bodyW / 2).toFixed(1)}" y="${bodyTop.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${color}"${strokeAttr} />`;
-  }).join('');
+  });
+
+  let gridSvg = '';
+  for (let t = 0; t <= MI_Y_TICKS; t += 1) {
+    const p = min + (range * t) / MI_Y_TICKS;
+    const y = scaleY(p);
+    gridSvg += `<line x1="${MI_CANDLE_PAD_LEFT}" y1="${y.toFixed(1)}" x2="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y2="${y.toFixed(1)}" stroke="var(--color-border)" stroke-width="1" />`
+      + `<text x="${MI_CANDLE_PAD_LEFT - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-label">${Math.round(p).toLocaleString('ko-KR')}</text>`;
+  }
 
   return `
     <div class="quiz-chart-wrap">
-      <svg viewBox="0 0 ${MI_CANDLE_W} ${MI_CANDLE_H}" class="quiz-chart" role="img" aria-label="일별 캔들 차트 (양봉/음봉)">
-        ${candles}
+      <svg viewBox="0 0 ${MI_CANDLE_W} ${MI_CANDLE_H}" class="quiz-chart" role="img" aria-label="일별 캔들 차트 (양봉/음봉), 세로축 가격">
+        ${gridSvg}
+        ${dividersSvg}
+        ${candlesSvg}
         ${lastLabelSvg}
-        <text x="${MI_CANDLE_PAD_X}" y="${MI_CANDLE_H - 8}" class="chart-label">${ohlc.d[fromIdx]}</text>
-        <text x="${MI_CANDLE_W - MI_CANDLE_PAD_X}" y="${MI_CANDLE_H - 8}" text-anchor="end" class="chart-label">${ohlc.d[toIdx]}</text>
+        <text x="${MI_CANDLE_PAD_LEFT}" y="${MI_CANDLE_H - 8}" class="chart-label">${ohlc.d[overallFrom]}</text>
+        <text x="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y="${MI_CANDLE_H - 8}" text-anchor="end" class="chart-label">${ohlc.d[overallTo]}</text>
       </svg>
     </div>
   `;
@@ -553,15 +607,15 @@ const renderMiRoundStep = () => {
 
   const total = miCash + miHoldings * price;
   const returnPct = ((total - miRoundStartCash) / miRoundStartCash) * 100;
-  // 1분기부터 현재 분기까지 차트를 누적해서 보여준다
-  const roundStartIdx = miFindCheckpointIndex(miCurrentOhlc, miFractionalYearToDate(years[0]));
+  // 분기가 늘어날수록 차트를 동일 폭 세그먼트로 나눠, 이전 분기 구간은 압축되고 현재 분기가 새로 채워지도록 보여준다
+  const segments = miBuildSegments(miCurrentOhlc, years, miCheckpointIndex);
   const periodLabel = isLast ? '5분기 · 최종 정산가' : `${miCheckpointIndex + 1}분기`;
 
   mockinvestApp.innerHTML = `
     <h3>라운드 ${miRoundIndex + 1} / ${MI_ROUNDS} · ${stock.name}</h3>
     <p class="mi-help">${periodLabel} · ${miFormatPeriodLabel(year)} (실제 거래일 ${miCurrentOhlc.d[idx]})${isLast ? ' — 이 시점은 매수/매도 없이 보유 주식이 이 가격에 자동 매도됩니다.' : ''}</p>
 
-    ${miCandleChart(miCurrentOhlc, roundStartIdx, idx)}
+    ${miCandleChart(miCurrentOhlc, segments)}
 
     <div class="portfolio-stats">
       <div class="stat-card"><strong>${formatWon(price)}</strong><span>${isLast ? '정산가' : '현재가'}</span></div>
@@ -614,7 +668,7 @@ const renderMiRoundStep = () => {
 
   document.getElementById('miNextCheckpoint').addEventListener('click', () => {
     if (isLast) {
-      renderMiRoundResult(stock, idx);
+      renderMiRoundResult(stock);
     } else {
       miCheckpointIndex += 1;
       renderMiRoundStep();
@@ -622,18 +676,18 @@ const renderMiRoundStep = () => {
   });
 };
 
-const renderMiRoundResult = (stock, finalIdx) => {
+const renderMiRoundResult = (stock) => {
   const finalValue = miCash;
   const returnPct = ((finalValue - miRoundStartCash) / miRoundStartCash) * 100;
   miRoundResults.push({ name: stock.name, finalValue, returnPct });
 
   const isLastRound = miRoundIndex === MI_ROUNDS - 1;
   const years = miCheckpointYears(miStartYear, miEndYear);
-  const roundStartIdx = miFindCheckpointIndex(miCurrentOhlc, miFractionalYearToDate(years[0]));
+  const segments = miBuildSegments(miCurrentOhlc, years, MI_CHECKPOINTS);
 
   mockinvestApp.innerHTML = `
     <h3>라운드 ${miRoundIndex + 1} 결과 · ${stock.name}</h3>
-    ${miCandleChart(miCurrentOhlc, roundStartIdx, finalIdx)}
+    ${miCandleChart(miCurrentOhlc, segments)}
     <div class="portfolio-stats">
       <div class="stat-card"><strong>${formatWon(finalValue)}</strong><span>최종 자산</span></div>
       <div class="stat-card"><strong style="color:${returnPct > 0 ? 'var(--color-up)' : returnPct < 0 ? 'var(--color-down)' : '#fff'}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</strong><span>라운드 수익률</span></div>
