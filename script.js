@@ -414,56 +414,25 @@ const miAggregateBars = (ohlc, fromIdx, toIdx, maxBars) => {
 };
 
 const MI_MIN_BAR_PX = 4;
-// 하루 꼬리(고가-저가)가 아무리 길어도 차트 세로 길이의 이 비율 이상을 차지하지 않도록 한다.
-const MI_MAX_WICK_RATIO = 0.25;
-// Y축 눈금은 항상 이 값들(만 원 또는 5만 원 단위 이상)의 배수로만 잡아, 몇백 원·몇십 원 단위의
-// 지저분한 숫자가 나오지 않게 한다. 종목 가격대가 커질수록 더 큰 단위를 자동으로 고른다.
-const MI_NICE_STEPS = [10000, 50000, 100000, 500000, 1000000, 5000000, 10000000, 50000000, 100000000];
+// Y축은 항상 0원부터 시작해서, 지금 화면에 보이는 구간의 최고가보다 이만큼 위까지만 잡는다.
+const MI_AXIS_HEADROOM = 50000;
 
 // 지금 화면에 보이는 구간(segments)만 기준으로 Y축 범위를 계산한다 — 분기가 넘어갈 때마다
-// 그 시점까지 실제로 드러난 가격에 맞춰 축이 다시 잡힌다(아직 오지 않은 분기의 가격을
-// 미리 반영해 축 범위로 최고가를 짐작할 수 있게 하지 않기 위해).
-// 특정 봉의 꼬리가 유난히 길어 나머지 구간을 짓눌러버리지 않도록, 필요하면 축 범위를 넓혀
-// 그 꼬리가 세로 길이의 1/4을 넘지 않게 만든다. 여러 거래일을 하나로 묶는 집계(miAggregateBars)
-// 때문에 하루짜리 꼬리는 안 길어도 묶인 봉의 꼬리는 더 길어질 수 있어, estimatedMaxBars로
-// 실제 렌더링과 같은 조건으로 미리 집계해서 확인한다. 마지막으로 눈금 값 자체는 항상
-// MI_NICE_STEPS의 배수로 반올림해 깔끔한 숫자만 나오게 한다.
-const miComputeYRange = (ohlc, segments, estimatedPadLeft) => {
+// 그 시점까지 실제로 드러난 최고가에 맞춰 축이 다시 잡힌다(아직 오지 않은 분기의 가격을
+// 미리 반영해 축 범위로 최고가를 짐작할 수 있게 하지 않기 위해). 0원부터 시작하므로 특정
+// 봉의 꼬리가 세로 길이 전체를 짓누르는 일도 자연히 없다.
+const miComputeYRange = (ohlc, segments) => {
   const overallFrom = segments[0].from;
   const overallTo = segments[segments.length - 1].to;
 
-  let dataMin = Infinity;
   let dataMax = -Infinity;
   for (let i = overallFrom; i <= overallTo; i += 1) {
-    dataMin = Math.min(dataMin, ohlc.l[i]);
     dataMax = Math.max(dataMax, ohlc.h[i]);
   }
 
-  const estimatedPlotW = MI_CANDLE_W - estimatedPadLeft - MI_CANDLE_PAD_RIGHT;
-  const estimatedSegW = estimatedPlotW / segments.length;
-  const estimatedMaxBars = Math.max(1, Math.floor(estimatedSegW / MI_MIN_BAR_PX));
-
-  let maxWick = 0;
-  segments.forEach((seg) => {
-    miAggregateBars(ohlc, seg.from, seg.to, estimatedMaxBars).forEach((bar) => {
-      maxWick = Math.max(maxWick, bar.h - bar.l);
-    });
-  });
-
-  const dataRange = (dataMax - dataMin) || Math.max(1, dataMax * 0.05);
-  const requiredRange = maxWick / MI_MAX_WICK_RATIO;
-  const desiredRange = Math.max(dataRange, requiredRange);
-
-  let step = MI_NICE_STEPS[MI_NICE_STEPS.length - 1];
-  for (const s of MI_NICE_STEPS) {
-    if (desiredRange / s <= MI_Y_TICKS) { step = s; break; }
-  }
-
-  const min = Math.max(0, Math.floor(dataMin / step) * step);
-  let max = min + step * MI_Y_TICKS;
-  while (max < dataMax) max += step;
-
-  return { min, max, range: max - min, step };
+  const min = 0;
+  const max = dataMax + MI_AXIS_HEADROOM;
+  return { min, max, range: max - min, step: (max - min) / MI_Y_TICKS };
 };
 
 // 여러 분기 세그먼트를 이어 붙여 실제 일별 캔들(양봉/음봉) 차트를 그린다.
@@ -473,14 +442,13 @@ const miCandleChart = (ohlc, segments) => {
   const overallFrom = segments[0].from;
   const overallTo = segments[segments.length - 1].to;
 
-  const { min, range, step } = miComputeYRange(ohlc, segments, 60);
+  const { min, range, step } = miComputeYRange(ohlc, segments);
   const innerH = MI_CANDLE_H - MI_CANDLE_PAD_TOP - MI_CANDLE_PAD_BOTTOM;
   const scaleY = (p) => MI_CANDLE_PAD_TOP + (1 - (p - min) / range) * innerH;
 
   // 가격이 몇 자리든(수만 원대 ~ 수백만 원대 종목) Y축 자릿수가 잘리지 않도록,
   // 실제 표시될 눈금 라벨 중 가장 긴 문자열 폭에 맞춰 왼쪽 여백을 동적으로 잡는다.
-  const tickCount = Math.round(range / step);
-  const tickPrices = Array.from({ length: tickCount + 1 }, (_, t) => min + step * t);
+  const tickPrices = Array.from({ length: MI_Y_TICKS + 1 }, (_, t) => min + step * t);
   const maxTickLen = Math.max(...tickPrices.map((p) => Math.round(p).toLocaleString('ko-KR').length));
   const padLeft = 12 + maxTickLen * 7.5;
 
