@@ -349,6 +349,7 @@ const MI_CANDLE_W = 400;
 const MI_CANDLE_H = 220;
 const MI_CANDLE_PAD_TOP = 16;
 const MI_CANDLE_PAD_BOTTOM = 26;
+const MI_CANDLE_PAD_LEFT = 8;
 const MI_CANDLE_PAD_RIGHT = 8;
 const MI_Y_TICKS = 4;
 
@@ -432,16 +433,9 @@ const miCandleChart = (ohlc, segments) => {
   const innerH = MI_CANDLE_H - MI_CANDLE_PAD_TOP - MI_CANDLE_PAD_BOTTOM;
   const scaleY = (p) => MI_CANDLE_PAD_TOP + (1 - (p - min) / range) * innerH;
 
-  // 가격이 몇 자리든(수만 원대 ~ 수백만 원대 종목) Y축 자릿수가 잘리지 않도록,
-  // 실제 표시될 눈금 라벨 중 가장 긴 문자열 폭에 맞춰 왼쪽 여백을 동적으로 잡는다.
-  const tickPrices = Array.from({ length: MI_Y_TICKS + 1 }, (_, t) => min + (range * t) / MI_Y_TICKS);
-  const maxTickLen = Math.max(...tickPrices.map((p) => Math.round(p).toLocaleString('ko-KR').length));
-  const MI_CANDLE_PAD_LEFT = 12 + maxTickLen * 7.5;
-
   const plotW = MI_CANDLE_W - MI_CANDLE_PAD_LEFT - MI_CANDLE_PAD_RIGHT;
   const segW = plotW / segments.length;
 
-  let lastLabelSvg = '';
   let candlesSvg = '';
 
   segments.forEach((seg, segIdx) => {
@@ -467,19 +461,6 @@ const miCandleChart = (ohlc, segments) => {
       const bodyH = Math.max(1, Math.abs(yClose - yOpen));
       const isLast = isLastSegment && endIdx === highlightIdx;
       const strokeAttr = isLast ? ' stroke="var(--color-black)" stroke-width="1"' : '';
-      if (isLast) {
-        const topLimit = MI_CANDLE_PAD_TOP + 10;
-        const bottomLimit = MI_CANDLE_H - MI_CANDLE_PAD_BOTTOM - 6;
-        let labelY = yHigh - 8;
-        if (labelY < topLimit) labelY = Math.min(yLow + 18, bottomLimit);
-        const labelText = formatWon(c);
-        const labelBoxW = labelText.length * 7.5 + 6;
-        const minX = MI_CANDLE_PAD_LEFT + labelBoxW / 2 + 2;
-        const maxX = MI_CANDLE_W - MI_CANDLE_PAD_RIGHT - labelBoxW / 2 - 2;
-        const labelX = Math.min(maxX, Math.max(minX, cx));
-        lastLabelSvg = `<rect x="${(labelX - labelBoxW / 2).toFixed(1)}" y="${(labelY - 12).toFixed(1)}" width="${labelBoxW.toFixed(1)}" height="16" fill="#fff" opacity="0.85" />`
-          + `<text x="${labelX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" class="chart-label chart-callout">${labelText}</text>`;
-      }
       candlesSvg += `<line x1="${cx.toFixed(1)}" y1="${yHigh.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yLow.toFixed(1)}" stroke="${color}" stroke-width="1" />`
         + `<rect x="${(cx - bodyW / 2).toFixed(1)}" y="${bodyTop.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${color}"${strokeAttr} />`;
     });
@@ -489,16 +470,14 @@ const miCandleChart = (ohlc, segments) => {
   for (let t = 0; t <= MI_Y_TICKS; t += 1) {
     const p = min + (range * t) / MI_Y_TICKS;
     const y = scaleY(p);
-    gridSvg += `<line x1="${MI_CANDLE_PAD_LEFT}" y1="${y.toFixed(1)}" x2="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y2="${y.toFixed(1)}" stroke="var(--color-border)" stroke-width="1" />`
-      + `<text x="${MI_CANDLE_PAD_LEFT - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-label">${Math.round(p).toLocaleString('ko-KR')}</text>`;
+    gridSvg += `<line x1="${MI_CANDLE_PAD_LEFT}" y1="${y.toFixed(1)}" x2="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y2="${y.toFixed(1)}" stroke="var(--color-border)" stroke-width="1" />`;
   }
 
   return `
     <div class="quiz-chart-wrap">
-      <svg viewBox="0 0 ${MI_CANDLE_W} ${MI_CANDLE_H}" class="quiz-chart" role="img" aria-label="일별 캔들 차트 (양봉/음봉), 세로축 가격">
+      <svg viewBox="0 0 ${MI_CANDLE_W} ${MI_CANDLE_H}" class="quiz-chart" role="img" aria-label="일별 캔들 차트 (양봉/음봉)">
         ${gridSvg}
         ${candlesSvg}
-        ${lastLabelSvg}
         <text x="${MI_CANDLE_PAD_LEFT}" y="${MI_CANDLE_H - 8}" class="chart-label">${ohlc.d[overallFrom]}</text>
         <text x="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y="${MI_CANDLE_H - 8}" text-anchor="end" class="chart-label">${ohlc.d[overallTo]}</text>
       </svg>
