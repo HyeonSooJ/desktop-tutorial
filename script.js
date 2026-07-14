@@ -349,7 +349,6 @@ const MI_CANDLE_W = 400;
 const MI_CANDLE_H = 220;
 const MI_CANDLE_PAD_TOP = 16;
 const MI_CANDLE_PAD_BOTTOM = 26;
-const MI_CANDLE_PAD_LEFT = 48;
 const MI_CANDLE_PAD_RIGHT = 8;
 const MI_Y_TICKS = 4;
 
@@ -363,9 +362,23 @@ const miBuildSegments = (ohlc, years, uptoCheckpointIndex) => {
   const quarterLen = Math.max(1, allIdxs[1] - allIdxs[0]);
   const lookbackStart = Math.max(0, idxs[0] - quarterLen);
 
-  const segments = [{ from: lookbackStart, to: idxs[0] }];
+  const firstSeg = { from: lookbackStart, to: idxs[0] };
+  // 시작 연도를 데이터의 첫날(2020-01-02)로 고르면 1분기 이전 실제 시세가 아예 없다.
+  // 이 경우에만 예외적으로, 다음 분기 체크포인트 가격이 드러나지 않을 만큼(최대 20거래일, 다음
+  // 체크포인트 이전까지만) 실제 이후 거래일을 살짝 끌어와 1분기도 단일 봉이 아닌 차트로 보이게 한다.
+  // (몇 분기까지 진행됐는지와 무관하게 항상 같은 범위를 써야, 이후 분기에서 이 구간이 압축될 때도
+  // 하나의 늘어난 봉이 아니라 여러 봉이 자연스럽게 좁아지는 모양이 된다.)
+  if (lookbackStart === idxs[0] && allIdxs[1] > idxs[0] + 1) {
+    const peekLen = Math.min(20, quarterLen - 1);
+    firstSeg.to = Math.min(idxs[0] + peekLen, allIdxs[1] - 1);
+    firstSeg.entryIdx = idxs[0];
+  }
+
+  const segments = [firstSeg];
+  // 세그먼트[1]은 세그먼트[0]이 실제로 끝난 지점(늘려 봤다면 그 지점)에서 이어져야
+  // 이미 보여준 날짜가 다음 세그먼트에서 중복으로 다시 그려지지 않는다.
   for (let i = 1; i < idxs.length; i += 1) {
-    segments.push({ from: idxs[i - 1], to: idxs[i] });
+    segments.push({ from: i === 1 ? firstSeg.to : idxs[i - 1], to: idxs[i] });
   }
   return segments;
 };
@@ -387,6 +400,12 @@ const miCandleChart = (ohlc, segments) => {
   const innerH = MI_CANDLE_H - MI_CANDLE_PAD_TOP - MI_CANDLE_PAD_BOTTOM;
   const scaleY = (p) => MI_CANDLE_PAD_TOP + (1 - (p - min) / range) * innerH;
 
+  // 가격이 몇 자리든(수만 원대 ~ 수백만 원대 종목) Y축 자릿수가 잘리지 않도록,
+  // 실제 표시될 눈금 라벨 중 가장 긴 문자열 폭에 맞춰 왼쪽 여백을 동적으로 잡는다.
+  const tickPrices = Array.from({ length: MI_Y_TICKS + 1 }, (_, t) => min + (range * t) / MI_Y_TICKS);
+  const maxTickLen = Math.max(...tickPrices.map((p) => Math.round(p).toLocaleString('ko-KR').length));
+  const MI_CANDLE_PAD_LEFT = 12 + maxTickLen * 7.5;
+
   const plotW = MI_CANDLE_W - MI_CANDLE_PAD_LEFT - MI_CANDLE_PAD_RIGHT;
   const segW = plotW / segments.length;
 
@@ -401,6 +420,7 @@ const miCandleChart = (ohlc, segments) => {
     const bodyW = Math.max(1.5, slotW * 0.6);
     const segX0 = MI_CANDLE_PAD_LEFT + segIdx * segW;
     const isLastSegment = segIdx === segments.length - 1;
+    const highlightIdx = seg.entryIdx ?? seg.to;
 
     idxs.forEach((i, pos) => {
       const o = ohlc.o[i];
@@ -416,7 +436,7 @@ const miCandleChart = (ohlc, segments) => {
       const yLow = scaleY(l);
       const bodyTop = Math.min(yOpen, yClose);
       const bodyH = Math.max(1, Math.abs(yClose - yOpen));
-      const isLast = isLastSegment && i === seg.to;
+      const isLast = isLastSegment && i === highlightIdx;
       const strokeAttr = isLast ? ' stroke="var(--color-black)" stroke-width="1"' : '';
       if (isLast) {
         const topLimit = MI_CANDLE_PAD_TOP + 10;
@@ -425,8 +445,11 @@ const miCandleChart = (ohlc, segments) => {
         if (labelY < topLimit) labelY = Math.min(yLow + 18, bottomLimit);
         const labelText = formatWon(c);
         const labelBoxW = labelText.length * 7.5 + 6;
-        lastLabelSvg = `<rect x="${(MI_CANDLE_W - MI_CANDLE_PAD_RIGHT - labelBoxW).toFixed(1)}" y="${(labelY - 12).toFixed(1)}" width="${labelBoxW.toFixed(1)}" height="16" fill="#fff" opacity="0.85" />`
-          + `<text x="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y="${labelY.toFixed(1)}" text-anchor="end" class="chart-label chart-callout">${labelText}</text>`;
+        const minX = MI_CANDLE_PAD_LEFT + labelBoxW / 2 + 2;
+        const maxX = MI_CANDLE_W - MI_CANDLE_PAD_RIGHT - labelBoxW / 2 - 2;
+        const labelX = Math.min(maxX, Math.max(minX, cx));
+        lastLabelSvg = `<rect x="${(labelX - labelBoxW / 2).toFixed(1)}" y="${(labelY - 12).toFixed(1)}" width="${labelBoxW.toFixed(1)}" height="16" fill="#fff" opacity="0.85" />`
+          + `<text x="${labelX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="middle" class="chart-label chart-callout">${labelText}</text>`;
       }
       candlesSvg += `<line x1="${cx.toFixed(1)}" y1="${yHigh.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yLow.toFixed(1)}" stroke="${color}" stroke-width="1" />`
         + `<rect x="${(cx - bodyW / 2).toFixed(1)}" y="${bodyTop.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${color}"${strokeAttr} />`;
@@ -456,10 +479,8 @@ const miCandleChart = (ohlc, segments) => {
 
 const mockinvestApp = document.getElementById('mockinvestApp');
 
-// 시작 연도 기본값은 데이터의 최솟값(MI_MIN_YEAR)보다 한 해 뒤로 잡는다.
-// MI_MIN_YEAR 그 해를 그대로 고르면 1분기 시점 이전 실제 시세가 아예 없어(데이터가 그 날부터 시작) 이전 추이를 보여줄 수 없기 때문.
 let miStarted = false;
-let miStartYear = MI_MIN_YEAR + 1;
+let miStartYear = MI_MIN_YEAR;
 let miEndYear = MI_MAX_YEAR;
 let miSelectedKeys = [];
 let miRoundIndex = 0;
@@ -492,14 +513,14 @@ const renderMiPeriodStep = () => {
         <select id="miEndYear" class="mi-select">${yearOptions(miEndYear)}</select>
       </div>
     </div>
-    <p class="mi-error" id="miPeriodError" hidden>종료 연도는 시작 연도보다 빠를 수 없습니다.</p>
+    <p class="mi-error" id="miPeriodError" hidden>종료 연도는 시작 연도보다 최소 1년 이상 뒤여야 합니다.</p>
     <button class="btn btn-primary" id="miPeriodNext">다음 →</button>
   `;
 
   document.getElementById('miPeriodNext').addEventListener('click', () => {
     const start = Number(document.getElementById('miStartYear').value);
     const end = Number(document.getElementById('miEndYear').value);
-    if (end < start) {
+    if (end <= start) {
       document.getElementById('miPeriodError').hidden = false;
       return;
     }
