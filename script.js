@@ -446,10 +446,15 @@ const miCandleChart = (ohlc, segments) => {
   const innerH = MI_CANDLE_H - MI_CANDLE_PAD_TOP - MI_CANDLE_PAD_BOTTOM;
   const scaleY = (p) => MI_CANDLE_PAD_TOP + (1 - (p - min) / range) * innerH;
 
+  // 눈금 위치 자체는 정확한 값을 쓰지만, 화면에 찍히는 숫자는 백 원·십 원 단위가 보이지
+  // 않도록 항상 5천 원 또는 만 원 단위로 반올림해서 보여준다.
+  const tickRoundUnit = step >= 20000 ? 10000 : 5000;
+  const formatAxisPrice = (p) => (Math.round(p / tickRoundUnit) * tickRoundUnit).toLocaleString('ko-KR');
+
   // 가격이 몇 자리든(수만 원대 ~ 수백만 원대 종목) Y축 자릿수가 잘리지 않도록,
   // 실제 표시될 눈금 라벨 중 가장 긴 문자열 폭에 맞춰 왼쪽 여백을 동적으로 잡는다.
   const tickPrices = Array.from({ length: MI_Y_TICKS + 1 }, (_, t) => min + step * t);
-  const maxTickLen = Math.max(...tickPrices.map((p) => Math.round(p).toLocaleString('ko-KR').length));
+  const maxTickLen = Math.max(...tickPrices.map((p) => formatAxisPrice(p).length));
   const padLeft = 12 + maxTickLen * 7.5;
 
   const plotW = MI_CANDLE_W - padLeft - MI_CANDLE_PAD_RIGHT;
@@ -489,7 +494,7 @@ const miCandleChart = (ohlc, segments) => {
   tickPrices.forEach((p) => {
     const y = scaleY(p);
     gridSvg += `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${MI_CANDLE_W - MI_CANDLE_PAD_RIGHT}" y2="${y.toFixed(1)}" stroke="var(--color-border)" stroke-width="1" />`
-      + `<text x="${padLeft - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-label">${Math.round(p).toLocaleString('ko-KR')}</text>`;
+      + `<text x="${padLeft - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="chart-label">${formatAxisPrice(p)}</text>`;
   });
 
   return `
