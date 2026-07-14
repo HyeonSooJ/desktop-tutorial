@@ -351,7 +351,6 @@ const MI_CANDLE_PAD_TOP = 16;
 const MI_CANDLE_PAD_BOTTOM = 26;
 const MI_CANDLE_PAD_LEFT = 48;
 const MI_CANDLE_PAD_RIGHT = 8;
-const MI_SEGMENT_GAP = 4;
 const MI_Y_TICKS = 4;
 
 // 체크포인트 index(0..uptoCheckpointIndex)를 분기 구간별 세그먼트로 나눈다.
@@ -389,12 +388,10 @@ const miCandleChart = (ohlc, segments) => {
   const scaleY = (p) => MI_CANDLE_PAD_TOP + (1 - (p - min) / range) * innerH;
 
   const plotW = MI_CANDLE_W - MI_CANDLE_PAD_LEFT - MI_CANDLE_PAD_RIGHT;
-  const gapTotal = MI_SEGMENT_GAP * (segments.length - 1);
-  const segW = (plotW - gapTotal) / segments.length;
+  const segW = plotW / segments.length;
 
   let lastLabelSvg = '';
   let candlesSvg = '';
-  let dividersSvg = '';
 
   segments.forEach((seg, segIdx) => {
     const idxs = [];
@@ -402,7 +399,7 @@ const miCandleChart = (ohlc, segments) => {
     const count = Math.max(1, idxs.length);
     const slotW = segW / count;
     const bodyW = Math.max(1.5, slotW * 0.6);
-    const segX0 = MI_CANDLE_PAD_LEFT + segIdx * (segW + MI_SEGMENT_GAP);
+    const segX0 = MI_CANDLE_PAD_LEFT + segIdx * segW;
     const isLastSegment = segIdx === segments.length - 1;
 
     idxs.forEach((i, pos) => {
@@ -434,11 +431,6 @@ const miCandleChart = (ohlc, segments) => {
       candlesSvg += `<line x1="${cx.toFixed(1)}" y1="${yHigh.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yLow.toFixed(1)}" stroke="${color}" stroke-width="1" />`
         + `<rect x="${(cx - bodyW / 2).toFixed(1)}" y="${bodyTop.toFixed(1)}" width="${bodyW.toFixed(1)}" height="${bodyH.toFixed(1)}" fill="${color}"${strokeAttr} />`;
     });
-
-    if (segIdx > 0) {
-      const dividerX = (segX0 - MI_SEGMENT_GAP / 2).toFixed(1);
-      dividersSvg += `<line x1="${dividerX}" y1="${MI_CANDLE_PAD_TOP}" x2="${dividerX}" y2="${MI_CANDLE_H - MI_CANDLE_PAD_BOTTOM}" stroke="var(--color-border)" stroke-width="1" stroke-dasharray="3 3" />`;
-    }
   });
 
   let gridSvg = '';
@@ -453,7 +445,6 @@ const miCandleChart = (ohlc, segments) => {
     <div class="quiz-chart-wrap">
       <svg viewBox="0 0 ${MI_CANDLE_W} ${MI_CANDLE_H}" class="quiz-chart" role="img" aria-label="일별 캔들 차트 (양봉/음봉), 세로축 가격">
         ${gridSvg}
-        ${dividersSvg}
         ${candlesSvg}
         ${lastLabelSvg}
         <text x="${MI_CANDLE_PAD_LEFT}" y="${MI_CANDLE_H - 8}" class="chart-label">${ohlc.d[overallFrom]}</text>
@@ -465,8 +456,10 @@ const miCandleChart = (ohlc, segments) => {
 
 const mockinvestApp = document.getElementById('mockinvestApp');
 
+// 시작 연도 기본값은 데이터의 최솟값(MI_MIN_YEAR)보다 한 해 뒤로 잡는다.
+// MI_MIN_YEAR 그 해를 그대로 고르면 1분기 시점 이전 실제 시세가 아예 없어(데이터가 그 날부터 시작) 이전 추이를 보여줄 수 없기 때문.
 let miStarted = false;
-let miStartYear = MI_MIN_YEAR;
+let miStartYear = MI_MIN_YEAR + 1;
 let miEndYear = MI_MAX_YEAR;
 let miSelectedKeys = [];
 let miRoundIndex = 0;
