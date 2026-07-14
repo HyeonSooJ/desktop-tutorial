@@ -383,6 +383,38 @@ const miBuildSegments = (ohlc, years, uptoCheckpointIndex) => {
   return segments;
 };
 
+// 구간에 담긴 실제 거래일 수가 maxBars보다 많으면, 여러 거래일을 하나의 봉으로 묶어
+// (시가=구간 첫날 시가, 종가=구간 마지막날 종가, 고가·저가=구간 내 최댓·최솟값) 반환한다.
+// 이렇게 하면 기간이 길어 하루짜리 봉이 실핏줄처럼 가늘어지는 대신, 항상 눈에 보이는 굵기의
+// 봉으로 유지된다. 마지막 봉의 끝은 항상 toIdx이므로, 강조 표시할 체크포인트 당일 가격은 그대로 정확하다.
+const miAggregateBars = (ohlc, fromIdx, toIdx, maxBars) => {
+  const totalDays = toIdx - fromIdx + 1;
+  if (totalDays <= maxBars) {
+    const bars = [];
+    for (let i = fromIdx; i <= toIdx; i += 1) {
+      bars.push({ o: ohlc.o[i], h: ohlc.h[i], l: ohlc.l[i], c: ohlc.c[i], endIdx: i });
+    }
+    return bars;
+  }
+  const bars = [];
+  const groupLen = totalDays / maxBars;
+  for (let g = 0; g < maxBars; g += 1) {
+    const gs = fromIdx + Math.round(g * groupLen);
+    const ge = g === maxBars - 1 ? toIdx : fromIdx + Math.round((g + 1) * groupLen) - 1;
+    if (gs > ge) continue;
+    let h = -Infinity;
+    let l = Infinity;
+    for (let i = gs; i <= ge; i += 1) {
+      h = Math.max(h, ohlc.h[i]);
+      l = Math.min(l, ohlc.l[i]);
+    }
+    bars.push({ o: ohlc.o[gs], h, l, c: ohlc.c[ge], endIdx: ge });
+  }
+  return bars;
+};
+
+const MI_MIN_BAR_PX = 4;
+
 // 여러 분기 세그먼트를 이어 붙여 실제 일별 캔들(양봉/음봉) 차트를 그린다.
 // 세그먼트가 늘어날수록 각 세그먼트 폭은 1/N로 줄어들고, 가격(Y축)은 전체 구간 공통 스케일을 쓴다.
 // 가장 마지막 캔들(현재 체크포인트 당일)을 강조 표시한다.
@@ -413,20 +445,17 @@ const miCandleChart = (ohlc, segments) => {
   let candlesSvg = '';
 
   segments.forEach((seg, segIdx) => {
-    const idxs = [];
-    for (let i = seg.from; i <= seg.to; i += 1) idxs.push(i);
-    const count = Math.max(1, idxs.length);
-    const slotW = segW / count;
-    const bodyW = Math.max(1.5, slotW * 0.6);
     const segX0 = MI_CANDLE_PAD_LEFT + segIdx * segW;
     const isLastSegment = segIdx === segments.length - 1;
     const highlightIdx = seg.entryIdx ?? seg.to;
 
-    idxs.forEach((i, pos) => {
-      const o = ohlc.o[i];
-      const h = ohlc.h[i];
-      const l = ohlc.l[i];
-      const c = ohlc.c[i];
+    const maxBars = Math.max(1, Math.floor(segW / MI_MIN_BAR_PX));
+    const bars = miAggregateBars(ohlc, seg.from, seg.to, maxBars);
+    const count = bars.length;
+    const slotW = segW / count;
+    const bodyW = Math.max(1.5, slotW * 0.6);
+
+    bars.forEach(({ o, h, l, c, endIdx }, pos) => {
       const isUp = c >= o;
       const color = isUp ? 'var(--color-up)' : 'var(--color-down)';
       const cx = segX0 + slotW * pos + slotW / 2;
@@ -436,7 +465,7 @@ const miCandleChart = (ohlc, segments) => {
       const yLow = scaleY(l);
       const bodyTop = Math.min(yOpen, yClose);
       const bodyH = Math.max(1, Math.abs(yClose - yOpen));
-      const isLast = isLastSegment && i === highlightIdx;
+      const isLast = isLastSegment && endIdx === highlightIdx;
       const strokeAttr = isLast ? ' stroke="var(--color-black)" stroke-width="1"' : '';
       if (isLast) {
         const topLimit = MI_CANDLE_PAD_TOP + 10;
