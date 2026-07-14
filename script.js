@@ -42,7 +42,7 @@ if (heroCarousel && heroSlides.length && heroDotsWrap) {
   }
 
   const nextHeroSlide = () => goToHeroSlide((heroIndex + 1) % heroSlides.length);
-  const startHeroTimer = () => { heroTimer = setInterval(nextHeroSlide, 4000); };
+  const startHeroTimer = () => { heroTimer = setInterval(nextHeroSlide, 3000); };
   const stopHeroTimer = () => clearInterval(heroTimer);
 
   startHeroTimer();
